@@ -1,9 +1,15 @@
 import pandas as pd
 from datetime import datetime
-from os.path import dirname, realpath, join
+from os import mkdir
+from os.path import dirname, realpath, join, isdir
 max_nearest_values = 1000
 cols = ['#1 Nearest', '#2 Nearest', '#3 Nearest', '#4 Nearest', '#5 Nearest', 'Multiplier #1', 'Multiplier #2', 'Multiplier #3', 'Multiplier #4', 'Multiplier #5', 'Multiplier']
 
+if not isdir(join(dirname(realpath('__file__')), 'datasets')):
+    mkdir(join(dirname(realpath('__file__')), 'datasets'))
+
+if not isdir(join(dirname(realpath('__file__')), 'datasets', 'distance_to_enemy')):
+    mkdir(join(dirname(realpath('__file__')), 'datasets', 'distance_to_enemy'))
 
 for nearest_1 in range(max_nearest_values+1):
     multiplier_1 = 0 if nearest_1 >= 100 else 1 - (nearest_1/100)

@@ -17,6 +17,12 @@ max_nearest_values = 1000
 
 cols = ['Distance since Last Update', 'Error Penalty', 'Number of blue Nodes', 'Score for all Nodes', 'Average Distance', 'Distance Modifier', 'Average Hierarchical distance', 'H Distance Modifier', '#1 Nearest', '#2 Nearest', '#3 Nearest', '#4 Nearest', '#5 Nearest', 'Multiplier #1', 'Multiplier #2', 'Multiplier #3', 'Multiplier #4', 'Multiplier #5', 'Multiplier', 'Score']
 
+if not isdir(join(dirname(realpath('__file__')), 'datasets')):
+    mkdir(join(dirname(realpath('__file__')), 'datasets'))
+
+if not isdir(join(dirname(realpath('__file__')), 'datasets', 'red_spots')):
+    mkdir(join(dirname(realpath('__file__')), 'datasets', 'red_spots'))
+
 for distance_since_last_update in range(min_distance_since_last_update, max_distance_since_last_update+1):
     error_penalty = distance_since_last_update * look_ahead_time_in_seconds * distance_error_base
     new_data = {'Distance since Last Update': distance_since_last_update, 'Error Penalty': error_penalty}

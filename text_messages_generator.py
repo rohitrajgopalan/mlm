@@ -1,6 +1,7 @@
 import pandas as pd
 from datetime import datetime
-from os.path import dirname, realpath, join
+from os import mkdir
+from os.path import dirname, realpath, join, isdir
 
 age_of_message = 0
 decay = 5 / 60
@@ -9,6 +10,12 @@ start_penalty = 49.625
 cols = ['Age of Message', 'Penalty']
 df = pd.DataFrame(columns=cols)
 penalty = start_penalty
+
+if not isdir(join(dirname(realpath('__file__')), 'datasets')):
+    mkdir(join(dirname(realpath('__file__')), 'datasets'))
+
+if not isdir(join(dirname(realpath('__file__')), 'datasets', 'text_messages')):
+    mkdir(join(dirname(realpath('__file__')), 'datasets', 'text_messages'))
 
 while penalty >= 0:
     penalty = start_penalty - (decay * age_of_message)

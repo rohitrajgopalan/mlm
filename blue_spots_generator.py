@@ -16,6 +16,12 @@ max_average_hierarchical_distance = 10
 
 cols = ['Distance since Last Update', 'Error Penalty', 'Number of blue Nodes', 'Score for all Nodes', 'Average Distance', 'Distance Modifier', 'Average Hierarchical distance', 'H Distance Modifier', 'Score']
 
+if not isdir(join(dirname(realpath('__file__')), 'datasets')):
+    mkdir(join(dirname(realpath('__file__')), 'datasets'))
+
+if not isdir(join(dirname(realpath('__file__')), 'datasets', 'blue_spots')):
+    mkdir(join(dirname(realpath('__file__')), 'datasets', 'blue_spots'))
+
 for distance_since_last_update in range(min_distance_since_last_update, max_distance_since_last_update+1):
     error_penalty = distance_since_last_update * look_ahead_time_in_seconds * distance_error_base
     new_data = {'Distance since Last Update': distance_since_last_update, 'Error Penalty': error_penalty}

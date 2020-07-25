@@ -1,6 +1,7 @@
 import pandas as pd
 from datetime import datetime
-from os.path import dirname, realpath, join
+from os import mkdir
+from os.path import dirname, realpath, join, isdir
 
 base = 20
 decay = 4 / 60

@@ -11,6 +11,12 @@ max_num_blue_nodes = 120
 
 cols = ['Age of Message', 'Number of blue Nodes', 'Cum Message Score', 'Score']
 
+if not isdir(join(dirname(realpath('__file__')), 'datasets')):
+    mkdir(join(dirname(realpath('__file__')), 'datasets'))
+
+if not isdir(join(dirname(realpath('__file__')), 'datasets', 'sos')):
+    mkdir(join(dirname(realpath('__file__')), 'datasets', 'sos'))
+    
 for age_of_message in range(min_age_of_message, max_age_of_message + 1):
     cum_message_score = 0
     for i in range(10):

@@ -1,6 +1,8 @@
 import pandas as pd
 from datetime import datetime
-from os.path import dirname, realpath, join
+from os import mkdir
+from os.path import dirname, realpath, join, isdir
+
 
 age_of_message = 0
 multiplier = 3
@@ -9,6 +11,12 @@ decay = 1/60
 
 cols = ['Age of Message', 'Cum Message cost', 'Score (Lazy)']
 df = pd.DataFrame(columns=cols)
+
+if not isdir(join(dirname(realpath('__file__')), 'datasets')):
+    mkdir(join(dirname(realpath('__file__')), 'datasets'))
+
+if not isdir(join(dirname(realpath('__file__')), 'datasets', 'tactical_graphics')):
+    mkdir(join(dirname(realpath('__file__')), 'datasets', 'tactical_graphics'))
 
 cum_message_cost = start_cum_message_score
 while cum_message_cost >= 0:

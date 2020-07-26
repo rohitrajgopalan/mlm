@@ -1,5 +1,8 @@
+from pandas import ExcelWriter
+from datetime import datetime
 from common import test_each_regressor
-
+from os import mkdir
+from os.path import dirname, realpath, join, isdir
 models = [{'sheet_name': 'text_messages',
            'features': ['Age of Message'],
            'label': 'Penalty'},
@@ -26,7 +29,8 @@ models = [{'sheet_name': 'text_messages',
           #  'label': 'Score'}
           ]
 
-print('Determine Best Scikit-Learn Regressor')
-for model in models:
-    test_each_regressor(model['sheet_name'], model['features'], model['label'])
-    print()
+if not isdir(join(dirname(realpath('__file__')), 'results')):
+    mkdir(join(dirname(realpath('__file__')), 'results'))
+with ExcelWriter(join(dirname(realpath('__file__')), 'results', 'results_{0}.xlsx'.format(datetime.now().strftime("%Y%m%d%H%M%S")))) as excel_writer:
+    for model in models:
+        test_each_regressor(model['sheet_name'], model['features'], model['label'], excel_writer)

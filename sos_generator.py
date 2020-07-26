@@ -10,7 +10,7 @@ max_age_of_message = 350
 min_num_blue_nodes = 0
 max_num_blue_nodes = 120
 
-cols = ['Age of Message', 'Number of blue Nodes', 'Cum Message Score', 'Score']
+cols = ['Age of Message', 'Number of blue Nodes', 'Score']
 
 if not isdir(join(dirname(realpath('__file__')), 'datasets')):
     mkdir(join(dirname(realpath('__file__')), 'datasets'))
@@ -24,7 +24,7 @@ for age_of_message in range(min_age_of_message, max_age_of_message + 1):
         cum_message_score += (base - ((age_of_message + i) * decay))
     cum_message_score = max(0, cum_message_score)
     df = pd.DataFrame(columns=cols)
-    new_data = {'Age of Message': age_of_message, 'Cum Message Score': cum_message_score}
+    new_data = {'Age of Message': age_of_message}
     for num_blue_nodes in range(min_num_blue_nodes, max_num_blue_nodes + 1):
         score = num_blue_nodes * cum_message_score
         new_data.update({'Number of blue Nodes': num_blue_nodes, 'Score': score})

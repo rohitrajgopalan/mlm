@@ -31,6 +31,10 @@ models = [{'sheet_name': 'text_messages',
 
 if not isdir(join(dirname(realpath('__file__')), 'results')):
     mkdir(join(dirname(realpath('__file__')), 'results'))
-with ExcelWriter(join(dirname(realpath('__file__')), 'results', 'results_{0}.xlsx'.format(datetime.now().strftime("%Y%m%d%H%M%S")))) as excel_writer:
+try:
+    with ExcelWriter(join(dirname(realpath('__file__')), 'results', 'results_{0}.xlsx'.format(datetime.now().strftime("%Y%m%d%H%M%S")))) as excel_writer:
+        for model in models:
+            test_each_regressor(model['sheet_name'], model['features'], model['label'], excel_writer)
+except ModuleNotFoundError:
     for model in models:
-        test_each_regressor(model['sheet_name'], model['features'], model['label'], excel_writer)
+        test_each_regressor(model['sheet_name'], model['features'], model['label'])

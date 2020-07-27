@@ -14,8 +14,11 @@ penalty = start_penalty
 if not isdir(join(dirname(realpath('__file__')), 'datasets')):
     mkdir(join(dirname(realpath('__file__')), 'datasets'))
 
-if not isdir(join(dirname(realpath('__file__')), 'datasets', 'text_messages')):
-    mkdir(join(dirname(realpath('__file__')), 'datasets', 'text_messages'))
+if not isdir(join(dirname(realpath('__file__')), 'datasets', 'train')):
+    mkdir(join(dirname(realpath('__file__')), 'datasets', 'train'))
+
+if not isdir(join(dirname(realpath('__file__')), 'datasets', 'train', 'text_messages')):
+    mkdir(join(dirname(realpath('__file__')), 'datasets', 'train', 'text_messages'))
 
 while penalty >= 0:
     penalty = start_penalty - (decay * age_of_message)
@@ -24,5 +27,5 @@ while penalty >= 0:
     df = df.append({'Age of Message': age_of_message, 'Penalty': penalty},
                    ignore_index=True)
     age_of_message += 1
-df.to_csv(join(dirname(realpath('__file__')), 'datasets', 'text_messages',
+df.to_csv(join(dirname(realpath('__file__')), 'datasets', 'train', 'text_messages',
                'text_messages_{0}.csv'.format(datetime.now().strftime("%Y%m%d%H%M%S"))), index=False)

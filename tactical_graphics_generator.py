@@ -15,8 +15,11 @@ df = pd.DataFrame(columns=cols)
 if not isdir(join(dirname(realpath('__file__')), 'datasets')):
     mkdir(join(dirname(realpath('__file__')), 'datasets'))
 
-if not isdir(join(dirname(realpath('__file__')), 'datasets', 'tactical_graphics')):
-    mkdir(join(dirname(realpath('__file__')), 'datasets', 'tactical_graphics'))
+if not isdir(join(dirname(realpath('__file__')), 'datasets', 'train')):
+    mkdir(join(dirname(realpath('__file__')), 'datasets', 'train'))
+
+if not isdir(join(dirname(realpath('__file__')), 'datasets', 'train', 'tactical_graphics')):
+    mkdir(join(dirname(realpath('__file__')), 'datasets', 'train', 'tactical_graphics'))
 
 cum_message_cost = start_cum_message_score
 while cum_message_cost >= 0:
@@ -26,4 +29,4 @@ while cum_message_cost >= 0:
     score = cum_message_cost * multiplier
     df = df.append({'Age of Message': age_of_message, 'Score (Lazy)': score}, ignore_index=True)
     age_of_message += 1
-df.to_csv(join(dirname(realpath('__file__')), 'datasets', 'tactical_graphics', 'tactical_graphics_{0}.csv'.format(datetime.now().strftime("%Y%m%d%H%M%S"))), index=False)
+df.to_csv(join(dirname(realpath('__file__')), 'datasets', 'train', 'tactical_graphics', 'tactical_graphics_{0}.csv'.format(datetime.now().strftime("%Y%m%d%H%M%S"))), index=False)

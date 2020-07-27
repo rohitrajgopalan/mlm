@@ -15,8 +15,11 @@ cols = ['Age of Message', 'Number of blue Nodes', 'Score']
 if not isdir(join(dirname(realpath('__file__')), 'datasets')):
     mkdir(join(dirname(realpath('__file__')), 'datasets'))
 
-if not isdir(join(dirname(realpath('__file__')), 'datasets', 'sos')):
-    mkdir(join(dirname(realpath('__file__')), 'datasets', 'sos'))
+if not isdir(join(dirname(realpath('__file__')), 'datasets', 'train')):
+    mkdir(join(dirname(realpath('__file__')), 'datasets', 'train'))
+
+if not isdir(join(dirname(realpath('__file__')), 'datasets', 'train', 'sos')):
+    mkdir(join(dirname(realpath('__file__')), 'datasets', 'train', 'sos'))
     
 for age_of_message in range(min_age_of_message, max_age_of_message + 1):
     cum_message_score = 0
@@ -29,4 +32,4 @@ for age_of_message in range(min_age_of_message, max_age_of_message + 1):
         score = num_blue_nodes * cum_message_score
         new_data.update({'Number of blue Nodes': num_blue_nodes, 'Score': score})
         df = df.append(new_data, ignore_index=True)
-    df.to_csv(join(dirname(realpath('__file__')), 'datasets', 'sos', 'sos_{0}_{1}.csv'.format(age_of_message+1, datetime.now().strftime("%Y%m%d%H%M%S"))), index=False)
+    df.to_csv(join(dirname(realpath('__file__')), 'datasets', 'train', 'sos', 'sos_{0}_{1}.csv'.format(age_of_message+1, datetime.now().strftime("%Y%m%d%H%M%S"))), index=False)

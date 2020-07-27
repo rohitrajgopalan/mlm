@@ -20,8 +20,11 @@ cols = ['Distance since Last Update', 'Number of blue Nodes', 'Average Distance'
 if not isdir(join(dirname(realpath('__file__')), 'datasets')):
     mkdir(join(dirname(realpath('__file__')), 'datasets'))
 
-if not isdir(join(dirname(realpath('__file__')), 'datasets', 'blue_spots')):
-    mkdir(join(dirname(realpath('__file__')), 'datasets', 'blue_spots'))
+if not isdir(join(dirname(realpath('__file__')), 'datasets', 'train')):
+    mkdir(join(dirname(realpath('__file__')), 'datasets', 'train'))
+
+if not isdir(join(dirname(realpath('__file__')), 'datasets', 'train', 'blue_spots')):
+    mkdir(join(dirname(realpath('__file__')), 'datasets', 'train', 'blue_spots'))
 
 for distance_since_last_update in range(min_distance_since_last_update, max_distance_since_last_update+1):
     error_penalty = distance_since_last_update * look_ahead_time_in_seconds * distance_error_base
@@ -38,4 +41,4 @@ for distance_since_last_update in range(min_distance_since_last_update, max_dist
                 score = score_for_all_nodes * distance_modifier * h_distance_modifier
                 new_data.update({'Average Hierarchical distance': average_hierarchical_distance, 'Score': score})
                 df = df.append(new_data, ignore_index=True)
-            df.to_csv(join(dirname(realpath('__file__')), 'datasets', 'blue_spots', 'blue_spots_{0}_{1}.csv'.format((distance_since_last_update+num_blue_nodes+average_distance)+1, datetime.now().strftime("%Y%m%d%H%M%S"))), index=False)
+            df.to_csv(join(dirname(realpath('__file__')), 'datasets', 'train', 'blue_spots', 'blue_spots_{0}_{1}.csv'.format((distance_since_last_update+num_blue_nodes+average_distance)+1, datetime.now().strftime("%Y%m%d%H%M%S"))), index=False)

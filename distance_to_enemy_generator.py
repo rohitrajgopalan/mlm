@@ -8,8 +8,11 @@ cols = ['#1 Nearest', '#2 Nearest', '#3 Nearest', '#4 Nearest', '#5 Nearest', 'M
 if not isdir(join(dirname(realpath('__file__')), 'datasets')):
     mkdir(join(dirname(realpath('__file__')), 'datasets'))
 
-if not isdir(join(dirname(realpath('__file__')), 'datasets', 'distance_to_enemy')):
-    mkdir(join(dirname(realpath('__file__')), 'datasets', 'distance_to_enemy'))
+if not isdir(join(dirname(realpath('__file__')), 'datasets', 'train')):
+    mkdir(join(dirname(realpath('__file__')), 'datasets', 'train'))
+
+if not isdir(join(dirname(realpath('__file__')), 'datasets', 'train', 'distance_to_enemy')):
+    mkdir(join(dirname(realpath('__file__')), 'datasets', 'train', 'distance_to_enemy'))
 
 for nearest_1 in range(max_nearest_values+1):
     multiplier_1 = 0 if nearest_1 >= 100 else 1 - (nearest_1/100)
@@ -29,4 +32,4 @@ for nearest_1 in range(max_nearest_values+1):
                     multiplier_sum = 1 + multiplier_1 + multiplier_2 + multiplier_3 + multiplier_4 + multiplier_5
                     new_data.update({'#5 Nearest': nearest_5, 'Multiplier': multiplier_sum})
                     df = df.append(new_data, ignore_index=True)
-                df.to_csv(join(dirname(realpath('__file__')), 'datasets', 'distance_to_enemy', 'distance_to_enemy_{0}_{1}.csv'.format(nearest_1+nearest_2+nearest_3+nearest_4+1, datetime.now().strftime("%Y%m%d%H%M%S"))), index=False)
+                df.to_csv(join(dirname(realpath('__file__')), 'datasets', 'train', 'distance_to_enemy', 'distance_to_enemy_{0}_{1}.csv'.format(nearest_1+nearest_2+nearest_3+nearest_4+1, datetime.now().strftime("%Y%m%d%H%M%S"))), index=False)

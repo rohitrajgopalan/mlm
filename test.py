@@ -1,40 +1,49 @@
-from pandas import ExcelWriter
-from datetime import datetime
-from common import test_each_regressor
 from os import mkdir
 from os.path import dirname, realpath, join, isdir
+
+from common import get_regressors_with_best_mse
+
 models = [{'sheet_name': 'text_messages',
            'features': ['Age of Message'],
-           'label': 'Penalty'},
+           'label': 'Penalty',
+           'header': 0},
           {'sheet_name': 'sos_operational_context',
            'features': ['Seconds Since Last Sent SOS'],
-           'label': 'Multiplier'},
+           'label': 'Multiplier',
+           'header': 2},
           {'sheet_name': 'tactical_graphics',
            'features': ['Age of Message'],
-           'label': 'Score (Lazy)'},
+           'label': 'Score (Lazy)',
+           'header': 0},
           {'sheet_name': 'sos',
            'features': ['Age of Message', 'Number of blue Nodes'],
-           'label': 'Score'},
-          # {'sheet_name': 'blue_spots',
-          #  'features': ['Distance since Last Update', 'Number of blue Nodes', 'Average Distance',
-          #               'Average Hierarchical distance'],
-          #  'label': 'Score'},
-          # {'sheet_name': 'distance_to_enemy',
-          #  'features': ['#1 Nearest', '#2 Nearest', '#3 Nearest', '#4 Nearest', '#5 Nearest'],
-          #  'label': 'Multiplier'},
-          # {'sheet_name': 'red_spots',
-          #  'features': ['Distance since Last Update', 'Number of blue Nodes', 'Average Distance',
-          #               'Average Hierarchical distance', '#1 Nearest', '#2 Nearest', '#3 Nearest', '#4 Nearest',
-          #               '#5 Nearest'],
-          #  'label': 'Score'}
+           'label': 'Score',
+           'header': 2},
+          {'sheet_name': 'blue_spots',
+           'features': ['Distance since Last Update', 'Number of blue Nodes', 'Average Distance',
+                        'Average Hierarchical distance'],
+           'label': 'Score',
+           'header': 2},
+          {'sheet_name': 'distance_to_enemy',
+           'features': ['#1 Nearest', '#2 Nearest', '#3 Nearest', '#4 Nearest', '#5 Nearest'],
+           'label': 'Multiplier',
+           'header': 2},
+          {'sheet_name': 'red_spots',
+           'features': ['Distance since Last Update', 'Number of blue Nodes', 'Average Distance',
+                        'Average Hierarchical distance', '#1 Nearest', '#2 Nearest', '#3 Nearest', '#4 Nearest',
+                        '#5 Nearest'],
+           'label': 'Score',
+           'header': 2}
           ]
 
 if not isdir(join(dirname(realpath('__file__')), 'results')):
     mkdir(join(dirname(realpath('__file__')), 'results'))
-try:
-    with ExcelWriter(join(dirname(realpath('__file__')), 'results', 'results_{0}.xlsx'.format(datetime.now().strftime("%Y%m%d%H%M%S")))) as excel_writer:
-        for model in models:
-            test_each_regressor(model['sheet_name'], model['features'], model['label'], excel_writer)
-except ModuleNotFoundError:
-    for model in models:
-        test_each_regressor(model['sheet_name'], model['features'], model['label'])
+
+test_dir = join(dirname(realpath('__file__')), 'datasets', 'test')
+
+for model in models:
+    best_regressors = get_regressors_with_best_mse(model['sheet_name'], model['features'], model['label'], model['header'])
+    print('Best Regressors for ', model['sheet_name'])
+    for item in best_regressors:
+        print('{0} {1} scaling and {2} normalization'.format(item[0], 'with' if item[1] else 'without', 'with' if item[2] else 'without'))
+

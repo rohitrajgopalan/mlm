@@ -11,9 +11,16 @@ if not isdir(join(dirname(realpath('__file__')), 'datasets')):
 if not isdir(join(dirname(realpath('__file__')), 'datasets', 'train')):
     mkdir(join(dirname(realpath('__file__')), 'datasets', 'train'))
 
+if not isdir(join(dirname(realpath('__file__')), 'datasets', 'test')):
+    mkdir(join(dirname(realpath('__file__')), 'datasets', 'test'))
+
 if not isdir(join(dirname(realpath('__file__')), 'datasets', 'train', 'distance_to_enemy')):
     mkdir(join(dirname(realpath('__file__')), 'datasets', 'train', 'distance_to_enemy'))
 
+if not isdir(join(dirname(realpath('__file__')), 'datasets', 'test', 'distance_to_enemy')):
+    mkdir(join(dirname(realpath('__file__')), 'datasets', 'test', 'distance_to_enemy'))
+
+file_counter = 0
 for nearest_1 in range(max_nearest_values+1):
     multiplier_1 = 0 if nearest_1 >= 100 else 1 - (nearest_1/100)
     new_data = {'#1 Nearest': nearest_1}
@@ -32,4 +39,18 @@ for nearest_1 in range(max_nearest_values+1):
                     multiplier_sum = 1 + multiplier_1 + multiplier_2 + multiplier_3 + multiplier_4 + multiplier_5
                     new_data.update({'#5 Nearest': nearest_5, 'Multiplier': multiplier_sum})
                     df = df.append(new_data, ignore_index=True)
-                df.to_csv(join(dirname(realpath('__file__')), 'datasets', 'train', 'distance_to_enemy', 'distance_to_enemy_{0}_{1}.csv'.format(nearest_1+nearest_2+nearest_3+nearest_4+1, datetime.now().strftime("%Y%m%d%H%M%S"))), index=False)
+                df.to_csv(join(dirname(realpath('__file__')), 'datasets', 'train', 'distance_to_enemy', 'distance_to_enemy_{0}_{1}.csv'.format(file_counter+1, datetime.now().strftime("%Y%m%d%H%M%S"))), index=False)
+                file_counter += 1
+
+max_test_rows = 100
+num_test_rows = 0
+df_test = pd.DataFrame(columns=cols)
+while num_test_rows < max_test_rows:
+    new_data = {}
+    try:
+        df_test = df_test.append(new_data, ignore_index=True)
+        num_test_rows += 1
+    except ValueError:
+        continue
+df_test.to_csv(join(dirname(realpath('__file__')), 'datasets', 'test', 'distance_to_enemy', 'distance_to_enemy_{0}.csv'.format(datetime.now().strftime("%Y%m%d%H%M%S"))), index=False)
+

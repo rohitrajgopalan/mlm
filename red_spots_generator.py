@@ -24,9 +24,16 @@ if not isdir(join(dirname(realpath('__file__')), 'datasets')):
 if not isdir(join(dirname(realpath('__file__')), 'datasets', 'train')):
     mkdir(join(dirname(realpath('__file__')), 'datasets', 'train'))
 
+if not isdir(join(dirname(realpath('__file__')), 'datasets', 'test')):
+    mkdir(join(dirname(realpath('__file__')), 'datasets', 'test'))
+
 if not isdir(join(dirname(realpath('__file__')), 'datasets', 'train', 'red_spots')):
     mkdir(join(dirname(realpath('__file__')), 'datasets', 'train', 'red_spots'))
 
+if not isdir(join(dirname(realpath('__file__')), 'datasets', 'test', 'red_spots')):
+    mkdir(join(dirname(realpath('__file__')), 'datasets', 'test', 'red_spots'))
+
+file_counter = 0
 for distance_since_last_update in range(min_distance_since_last_update, max_distance_since_last_update+1):
     error_penalty = distance_since_last_update * look_ahead_time_in_seconds * distance_error_base
     new_data = {'Distance since Last Update': distance_since_last_update}
@@ -58,4 +65,17 @@ for distance_since_last_update in range(min_distance_since_last_update, max_dist
                                     score = score_for_all_nodes * distance_modifier * h_distance_modifier * multiplier_sum
                                     new_data.update({'#5 Nearest': nearest_5, 'Score': score})
                                     df = df.append(new_data, ignore_index=True)
-                                df.to_csv(join(dirname(realpath('__file__')), 'datasets', 'train', 'red_spots', 'red_spots_{0}_{1}.csv'.format(distance_since_last_update+num_blue_nodes+average_distance+average_hierarchical_distance+nearest_1+nearest_2+nearest_3+nearest_4+1, datetime.now().strftime("%Y%m%d%H%M%S"))), index=False)
+                                df.to_csv(join(dirname(realpath('__file__')), 'datasets', 'train', 'red_spots', 'red_spots_{0}_{1}.csv'.format(file_counter+1, datetime.now().strftime("%Y%m%d%H%M%S"))), index=False)
+                                file_counter += 1
+
+max_test_rows = 100
+num_test_rows = 0
+df_test = pd.DataFrame(columns=cols)
+while num_test_rows < max_test_rows:
+    new_data = {}
+    try:
+        df_test = df_test.append(new_data, ignore_index=True)
+        num_test_rows += 1
+    except ValueError:
+        continue
+df_test.to_csv(join(dirname(realpath('__file__')), 'datasets', 'test', 'red_spots', 'red_spots_{0}.csv'.format(datetime.now().strftime("%Y%m%d%H%M%S"))), index=False)

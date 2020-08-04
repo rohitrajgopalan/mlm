@@ -39,11 +39,10 @@ models = [{'sheet_name': 'text_messages',
 if not isdir(join(dirname(realpath('__file__')), 'results')):
     mkdir(join(dirname(realpath('__file__')), 'results'))
 
-test_dir = join(dirname(realpath('__file__')), 'datasets', 'test')
-
 for model in models:
-    best_regressors = get_regressors_with_best_mse(model['sheet_name'], model['features'], model['label'], model['header'])
-    print('Best Regressors for ', model['sheet_name'])
-    for item in best_regressors:
-        print('{0} {1} scaling and {2} normalization'.format(item[0], 'with' if item[1] else 'without', 'with' if item[2] else 'without'))
+    for use_test_data in [True]:
+        best_regressors = get_regressors_with_best_mse(model['sheet_name'], model['features'], model['label'], model['header'], use_test_data)
+        print('Best Regressors for {0} with {1} data'.format(model['sheet_name'], 'test' if use_test_data else 'train'))
+        for item in best_regressors:
+            print('{0} {1} scaling and {2} normalization'.format(item[0], 'with' if item[1] else 'without', 'with' if item[2] else 'without'))
 

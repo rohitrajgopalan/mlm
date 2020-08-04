@@ -1,21 +1,19 @@
 from os.path import dirname, realpath, join
 
-import pandas as pd
 import numpy as np
-
+import pandas as pd
+from sklearn.metrics import mean_squared_error
 from supervised_learning.common import MethodType, load_from_directory, run_with_different_methods, regressors
 from supervised_learning.supervised_learning_helper import SupervisedLearningHelper
-from sklearn.metrics import mean_squared_error
 
 metrics_regressors = ['Explained Variance', 'Max Error', 'Mean Absolute Error', 'Mean Squared Error',
                       'Root Mean Squared Error',
                       'Median Absolute Error', 'R2 Score']
 
-test_data_files = join(dirname(realpath('__file__')), 'datasets', 'test')
 
-
-def get_regressors_with_best_mse(sheet_name, features, label, header_index):
-    train_data_files = join(dirname(realpath('__file__')), 'datasets', 'train', sheet_name)
+def get_regressors_with_best_mse(sheet_name, features, label, header_index, use_test_data=True):
+    train_data_files_dir = join(dirname(realpath('__file__')), 'datasets', 'train', sheet_name)
+    test_data_files_dir = join(dirname(realpath('__file__')), 'datasets', 'test', sheet_name)
     cols = [feature for feature in features]
     cols.append(label)
 
@@ -24,20 +22,34 @@ def get_regressors_with_best_mse(sheet_name, features, label, header_index):
     for regressor in regressors:
         for enable_scaling in [False, True]:
             for enable_normalization in [False, True]:
-                model = SupervisedLearningHelper.choose_helper(MethodType.Regression, train_data_files, features, label,
+                model = SupervisedLearningHelper.choose_helper(MethodType.Regression, train_data_files_dir, features,
+                                                               label,
                                                                {}, enable_scaling, None,
                                                                regressor, sheet_name, enable_normalization,
                                                                header_index)
-                test_data = load_from_directory(test_data_files, cols, {}, True, sheet_name, header_index)
-                inputs = test_data[features]
-                expected_outputs = test_data[label]
-                actual_outputs = model.predict(inputs)
-                mse = mean_squared_error(expected_outputs, actual_outputs)
+                if use_test_data:
+                    test_data = load_from_directory(test_data_files_dir, cols, {}, True, sheet_name, header_index)
+                    inputs = test_data[features]
+                    expected_outputs = test_data[label]
+                    actual_outputs = model.predict(inputs)
+                    mse = mean_squared_error(expected_outputs, actual_outputs)
+                else:
+                    df_each_train_file = load_from_directory(train_data_files_dir, cols, {}, False, sheet_name,
+                                                             header_index)
+                    mse = 0
+                    for df in df_each_train_file:
+                        inputs = df[features]
+                        expected_outputs = df[label]
+                        actual_outputs = model.predict(inputs)
+                        mse += mean_squared_error(expected_outputs, actual_outputs)
+                    mse = mse / len(df_each_train_file)
+
                 df_results = df_results.append({'Regressor': regressor,
                                                 'Enable Scaling': 'Yes' if enable_scaling else 'No',
                                                 'Enable Normalization': 'Yes' if enable_normalization else 'No',
                                                 'Mean Squared Error': mse}, ignore_index=True)
-    df_results.to_csv(join(dirname(realpath('__file__')), 'results', '{0}.csv'.format(sheet_name)),
+    df_results.to_csv(join(dirname(realpath('__file__')), 'results',
+                           '{0}_{1}.csv'.format(sheet_name, 'test' if use_test_data else 'train')),
                       index=False)
     mse_min = np.min(df_results['Mean Squared Error'])
     df_with_mse_min = df_results.loc[df_results['Mean Squared Error'] == mse_min]
@@ -74,8 +86,7 @@ def test_each_regressor(sheet_name, features, label, excel_writer=None):
                                                                                                                  'Enable Normalization'] == 'Yes' else 'without',
                                                                                                    best_row[metric]))
     if excel_writer is None:
-        df_models_combined.to_csv(join(dirname(realpath('__file__')), 'results', '{0}.csv'.format(sheet_name)),
+        df_models_combined.to_csv(join(dirname(realpath('__file__')), 'results', '{0}_{1}.csv'.format(sheet_name)),
                                   index=False)
     else:
         df_models_combined.to_excel(excel_writer, sheet_name)
-

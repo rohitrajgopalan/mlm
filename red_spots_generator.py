@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from datetime import datetime
 from os import mkdir
 from os.path import dirname, realpath, join, isdir
@@ -71,8 +72,27 @@ for distance_since_last_update in range(min_distance_since_last_update, max_dist
 max_test_rows = 100
 num_test_rows = 0
 df_test = pd.DataFrame(columns=cols)
+rand_generator = np.random.RandomState(0)
 while num_test_rows < max_test_rows:
-    new_data = {}
+    nearest_values = np.random.randint(0, max_nearest_values+1, (5, ))
+    multipliers = np.where(nearest_values < 100, 0.25, 0)
+    multiplier_sum = np.sum(multipliers)+1
+    distance_since_last_update = rand_generator.randint(min_distance_since_last_update, max_distance_since_last_update+1)
+    new_data = {'Distance since Last Update': distance_since_last_update}
+    num_blue_nodes = rand_generator.randint(min_blue_nodes, max_blue_nodes+1)
+    new_data.update({'Number of blue Nodes': num_blue_nodes})
+    error_penalty = distance_since_last_update * look_ahead_time_in_seconds * distance_error_base
+    score_for_all_nodes = num_blue_nodes * error_penalty
+    average_distance = rand_generator.randint(min_average_distance, max_average_distance+1)
+    new_data.update({'Average Distance': average_distance})
+    average_hierarchical_distance = rand_generator.randint(min_average_hierarchical_distance, max_average_hierarchical_distance+1)
+    h_distance_modifier = 0.2 - (0.04 * average_hierarchical_distance)
+    distance_modifier = 1 if average_distance <= 100 else math.pow(1 - h_distance_modifier,
+                                                                   (average_distance / 100) - 1)
+    score = score_for_all_nodes * distance_modifier * h_distance_modifier * multiplier_sum
+    new_data.update({'Average Hierarchical distance': average_hierarchical_distance, 'Score': score})
+    for i in range(5):
+        new_data.update({'#{0} Nearest'.format(i+1): nearest_values[i]})
     try:
         df_test = df_test.append(new_data, ignore_index=True)
         num_test_rows += 1

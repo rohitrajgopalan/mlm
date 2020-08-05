@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from datetime import datetime
 from os import mkdir
 from os.path import dirname, realpath, join, isdir
@@ -46,7 +47,11 @@ max_test_rows = 100
 num_test_rows = 0
 df_test = pd.DataFrame(columns=cols)
 while num_test_rows < max_test_rows:
-    new_data = {}
+    nearest_values = np.random.randint(0, max_nearest_values+1, (5, ))
+    multipliers = np.where(nearest_values >= 100, 0, 1 - (nearest_values / 100))
+    new_data = {'Multiplier': np.sum(multipliers)+1}
+    for i in range(5):
+        new_data.update({'#{0} Nearest'.format(i+1): nearest_values[i]})
     try:
         df_test = df_test.append(new_data, ignore_index=True)
         num_test_rows += 1

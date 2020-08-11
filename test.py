@@ -24,16 +24,16 @@ models = [{'sheet_name': 'text_messages',
                         'Average Hierarchical distance'],
            'label': 'Score',
            'header': 2},
-          {'sheet_name': 'distance_to_enemy',
-           'features': ['#1 Nearest', '#2 Nearest', '#3 Nearest', '#4 Nearest', '#5 Nearest'],
-           'label': 'Multiplier',
-           'header': 2},
-          {'sheet_name': 'red_spots',
-           'features': ['Distance since Last Update', 'Number of blue Nodes', 'Average Distance',
-                        'Average Hierarchical distance', '#1 Nearest', '#2 Nearest', '#3 Nearest', '#4 Nearest',
-                        '#5 Nearest'],
-           'label': 'Score',
-           'header': 2}
+          # {'sheet_name': 'distance_to_enemy',
+          #  'features': ['#1 Nearest', '#2 Nearest', '#3 Nearest', '#4 Nearest', '#5 Nearest'],
+          #  'label': 'Multiplier',
+          #  'header': 2},
+          # {'sheet_name': 'red_spots',
+          #  'features': ['Distance since Last Update', 'Number of blue Nodes', 'Average Distance',
+          #               'Average Hierarchical distance', '#1 Nearest', '#2 Nearest', '#3 Nearest', '#4 Nearest',
+          #               '#5 Nearest'],
+          #  'label': 'Score',
+          #  'header': 2}
           ]
 
 if not isdir(join(dirname(realpath('__file__')), 'results')):

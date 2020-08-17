@@ -1,8 +1,0 @@
-python3 text_messages_generator.py
-python3 sos_operational_context_generator.py
-python3 tactical_graphics_generator.py
-python3 sos_generator.py
-python3 distance_to_enemy_generator.py
-python3 blue_spots_generator.py
-python3 red_spots_generator.py
-python3 test.py

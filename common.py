@@ -26,6 +26,9 @@ def get_regressors_with_best_mse(sheet_name, features, label, header_index, cols
     df_results = pd.DataFrame(columns=['Regressor', 'Enable Scaling', 'Enable Normalization', 'Mean Squared Error'])
 
     training_data = load_from_directory(train_data_files_dir, cols, True, sheet_name, header_index, cols_to_types)
+    test_data = load_from_directory(test_data_files_dir, cols, True, sheet_name, header_index, cols_to_types)
+    inputs = test_data[features]
+    expected_outputs = test_data[label]
 
     for regressor in regressors:
         for enable_scaling in [False, True]:
@@ -33,12 +36,8 @@ def get_regressors_with_best_mse(sheet_name, features, label, header_index, cols
                 model = SupervisedLearningHelper.choose_helper(MethodType.Regression, enable_scaling,
                                                                enable_normalization, data=training_data,
                                                                choosing_method=regressor)
-                test_data = load_from_directory(test_data_files_dir, cols, True, sheet_name, header_index)
-                inputs = test_data[features]
-                expected_outputs = test_data[label]
                 actual_outputs = model.predict(inputs)
                 mse = mean_squared_error(expected_outputs, actual_outputs)
-
                 df_results = df_results.append({'Regressor': regressor,
                                                 'Enable Scaling': 'Yes' if enable_scaling else 'No',
                                                 'Enable Normalization': 'Yes' if enable_normalization else 'No',

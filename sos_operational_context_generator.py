@@ -3,6 +3,7 @@ import numpy as np
 from datetime import datetime
 from os import mkdir
 from os.path import dirname, realpath, join, isdir
+from mlm_utils import calculate_sos_operational_context_mutliplier
 
 max_number_of_seconds = 240
 cols = ['Seconds Since Last Sent SOS', 'Multiplier']
@@ -26,7 +27,7 @@ if not isdir(join(dirname(realpath('__file__')), 'datasets', 'test', 'sos_operat
     mkdir(join(dirname(realpath('__file__')), 'datasets', 'test', 'sos_operational_context'))
 
 for seconds_since_last_sent_sos in range(max_number_of_seconds+1):
-    df_train = df_train.append({'Seconds Since Last Sent SOS': seconds_since_last_sent_sos, 'Multiplier': 2 if seconds_since_last_sent_sos < 121 else 1}, ignore_index=True)
+    df_train = df_train.append({'Seconds Since Last Sent SOS': seconds_since_last_sent_sos, 'Multiplier': calculate_sos_operational_context_mutliplier(seconds_since_last_sent_sos)}, ignore_index=True)
 df_train.to_csv(join(dirname(realpath('__file__')), 'datasets', 'train', 'sos_operational_context', 'sos_operational_context_{0}.csv'.format(datetime.now().strftime("%Y%m%d%H%M%S"))), index=False)
 
 rand_generator = np.random.RandomState(0)
@@ -36,7 +37,7 @@ num_test_cases = 0
 while num_test_cases < max_test_cases:
     seconds_since_last_sent_sos = rand_generator.randint(low=0, high=max_number_of_seconds)
     try:
-        df_test = df_test.append({'Seconds Since Last Sent SOS': seconds_since_last_sent_sos, 'Multiplier': 2 if seconds_since_last_sent_sos < 121 else 1}, ignore_index=True)
+        df_test = df_test.append({'Seconds Since Last Sent SOS': seconds_since_last_sent_sos, 'Multiplier': calculate_sos_operational_context_mutliplier(seconds_since_last_sent_sos)}, ignore_index=True)
         num_test_cases += 1
     except ValueError:
         continue

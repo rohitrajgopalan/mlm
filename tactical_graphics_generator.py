@@ -3,6 +3,7 @@ from datetime import datetime
 from os import mkdir
 from os.path import dirname, realpath, join, isdir
 import numpy as np
+from mlm_utils import calculate_tactical_graphics_score
 
 age_of_message = 0
 multiplier = 3
@@ -28,12 +29,9 @@ if not isdir(join(dirname(realpath('__file__')), 'datasets', 'train', 'tactical_
 if not isdir(join(dirname(realpath('__file__')), 'datasets', 'test', 'tactical_graphics')):
     mkdir(join(dirname(realpath('__file__')), 'datasets', 'test', 'tactical_graphics'))
 
-cum_message_cost = start_cum_message_score
-while cum_message_cost >= 0:
-    cum_message_cost = start_cum_message_score - (age_of_message * decay)
-    if cum_message_cost < 0:
-        break
-    score = cum_message_cost * multiplier
+score = start_cum_message_score * multiplier
+while score >= 0:
+    score = calculate_tactical_graphics_score(age_of_message, start_cum_message_score, decay, multiplier)
     df_train = df_train.append({'Age of Message': age_of_message, 'Score (Lazy)': score}, ignore_index=True)
     age_of_message += 1
 df_train.to_csv(join(dirname(realpath('__file__')), 'datasets', 'train', 'tactical_graphics', 'tactical_graphics_{0}.csv'.format(datetime.now().strftime("%Y%m%d%H%M%S"))), index=False)
@@ -46,10 +44,9 @@ num_test_cases = 0
 max_age_of_messages = age_of_message
 while num_test_cases < max_test_cases:
     age_of_message = rand_generator.randint(low=0, high=max_age_of_messages)
-    cum_message_cost = start_cum_message_score - (age_of_message * decay)
-    if cum_message_cost < 0:
+    score = calculate_tactical_graphics_score(age_of_message, start_cum_message_score, decay, multiplier)
+    if score < 0:
         continue
-    score = cum_message_cost * multiplier
     try:
         df_test = df_test.append({'Age of Message': age_of_message, 'Score (Lazy)': score}, ignore_index=True)
         num_test_cases += 1

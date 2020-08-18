@@ -7,16 +7,6 @@ from supervised_learning.common import MethodType, load_from_directory, regresso
 from supervised_learning.supervised_learning_helper import SupervisedLearningHelper
 
 
-def show_max_min(sheet_name, features, label, cols_to_types):
-    train_data_files_dir = join(dirname(realpath('__file__')), 'datasets', 'train', sheet_name)
-    cols = [feature for feature in features]
-    cols.append(label)
-    training_data = load_from_directory(train_data_files_dir, cols, True, sheet_name, cols_to_types)
-    print('Viewing max and min of {0}'.format(sheet_name))
-    for col in cols:
-        print('{0}: max is {1}, min is {2}'.format(col, training_data[col].max(), training_data[col].min()))
-
-
 def get_regressors_with_best_mse(sheet_name, features, label, header_index, cols_to_types):
     train_data_files_dir = join(dirname(realpath('__file__')), 'datasets', 'train', sheet_name)
     test_data_files_dir = join(dirname(realpath('__file__')), 'datasets', 'test', sheet_name)

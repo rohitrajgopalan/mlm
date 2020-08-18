@@ -3,59 +3,42 @@ import numpy as np
 from datetime import datetime
 from os import mkdir
 from os.path import dirname, realpath, join, isdir
+from mlm_utils import calculate_distance_to_enemy_multiplier
+
 max_nearest_values = 1000
+generate_test_data = True
 cols = ['#1 Nearest', '#2 Nearest', '#3 Nearest', '#4 Nearest', '#5 Nearest', 'Multiplier']
 
-if not isdir(join(dirname(realpath('__file__')), 'datasets')):
-    mkdir(join(dirname(realpath('__file__')), 'datasets'))
 
-if not isdir(join(dirname(realpath('__file__')), 'datasets', 'train')):
-    mkdir(join(dirname(realpath('__file__')), 'datasets', 'train'))
+def generate_data(data_type, max_num_files, max_rows):
+    if not isdir(join(dirname(realpath('__file__')), 'datasets')):
+        mkdir(join(dirname(realpath('__file__')), 'datasets'))
 
-if not isdir(join(dirname(realpath('__file__')), 'datasets', 'test')):
-    mkdir(join(dirname(realpath('__file__')), 'datasets', 'test'))
+    if not isdir(join(dirname(realpath('__file__')), 'datasets', data_type)):
+        mkdir(join(dirname(realpath('__file__')), 'datasets', data_type))
 
-if not isdir(join(dirname(realpath('__file__')), 'datasets', 'train', 'distance_to_enemy')):
-    mkdir(join(dirname(realpath('__file__')), 'datasets', 'train', 'distance_to_enemy'))
+    if not isdir(join(dirname(realpath('__file__')), 'datasets', data_type, 'distance_to_enemy')):
+        mkdir(join(dirname(realpath('__file__')), 'datasets', data_type, 'distance_to_enemy'))
 
-if not isdir(join(dirname(realpath('__file__')), 'datasets', 'test', 'distance_to_enemy')):
-    mkdir(join(dirname(realpath('__file__')), 'datasets', 'test', 'distance_to_enemy'))
+    for _ in range(max_num_files):
+        df = pd.DataFrame(columns=cols)
+        num_rows = 0
+        while num_rows < max_rows:
+            nearest_values = np.random.randint(0, max_nearest_values + 1, (5,))
+            new_data = {'Multiplier': calculate_distance_to_enemy_multiplier(nearest_values)}
+            for i in range(5):
+                new_data.update({'#{0} Nearest'.format(i + 1): nearest_values[i]})
+            try:
+                df = df.append(new_data, ignore_index=True)
+                num_rows += 1
+            except ValueError:
+                print('Duplicate Distance to Enemy Row found for {0}'.format(new_data))
+                continue
+        df.to_csv(join(dirname(realpath('__file__')), 'datasets', data_type, 'distance_to_enemy',
+                       'distance_to_enemy_{0}.csv'.format(datetime.now().strftime("%Y%m%d%H%M%S"))),
+                  index=False)
 
-file_counter = 0
-for nearest_1 in range(max_nearest_values+1):
-    multiplier_1 = 0 if nearest_1 >= 100 else 1 - (nearest_1/100)
-    new_data = {'#1 Nearest': nearest_1}
-    for nearest_2 in range(max_nearest_values+1):
-        multiplier_2 = 0 if nearest_2 >= 100 else 1 - (nearest_2/100)
-        new_data.update({'#2 Nearest': nearest_2})
-        for nearest_3 in range(max_nearest_values+1):
-            multiplier_3 = 0 if nearest_3 >= 100 else 1 - (nearest_3 / 100)
-            new_data.update({'#3 Nearest': nearest_3})
-            for nearest_4 in range(max_nearest_values+1):
-                multiplier_4 = 0 if nearest_4 >= 100 else 1 - (nearest_4 / 100)
-                new_data.update({'#4 Nearest': nearest_4})
-                df = pd.DataFrame(columns=cols)
-                for nearest_5 in range(max_nearest_values+1):
-                    multiplier_5 = 0 if nearest_5 >= 100 else 1 - (nearest_5/100)
-                    multiplier_sum = 1 + multiplier_1 + multiplier_2 + multiplier_3 + multiplier_4 + multiplier_5
-                    new_data.update({'#5 Nearest': nearest_5, 'Multiplier': multiplier_sum})
-                    df = df.append(new_data, ignore_index=True)
-                df.to_csv(join(dirname(realpath('__file__')), 'datasets', 'train', 'distance_to_enemy', 'distance_to_enemy_{0}_{1}.csv'.format(file_counter+1, datetime.now().strftime("%Y%m%d%H%M%S"))), index=False)
-                file_counter += 1
 
-max_test_rows = 100
-num_test_rows = 0
-df_test = pd.DataFrame(columns=cols)
-while num_test_rows < max_test_rows:
-    nearest_values = np.random.randint(0, max_nearest_values+1, (5, ))
-    multipliers = np.where(nearest_values >= 100, 0, 1 - (nearest_values / 100))
-    new_data = {'Multiplier': np.sum(multipliers)+1}
-    for i in range(5):
-        new_data.update({'#{0} Nearest'.format(i+1): nearest_values[i]})
-    try:
-        df_test = df_test.append(new_data, ignore_index=True)
-        num_test_rows += 1
-    except ValueError:
-        continue
-df_test.to_csv(join(dirname(realpath('__file__')), 'datasets', 'test', 'distance_to_enemy', 'distance_to_enemy_{0}.csv'.format(datetime.now().strftime("%Y%m%d%H%M%S"))), index=False)
-
+generate_data('train', 40, 1000)
+if generate_test_data:
+    generate_data('test', 1, 100)

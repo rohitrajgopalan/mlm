@@ -3,6 +3,7 @@ from datetime import datetime
 from os import mkdir
 from os.path import dirname, realpath, join, isdir
 import numpy as np
+from mlm_utils import calculate_text_message_penalty
 
 age_of_message = 0
 decay = 5 / 60
@@ -29,7 +30,7 @@ if not isdir(join(dirname(realpath('__file__')), 'datasets', 'test', 'text_messa
     mkdir(join(dirname(realpath('__file__')), 'datasets', 'test', 'text_messages'))
 
 while penalty >= 0:
-    penalty = start_penalty - (decay * age_of_message)
+    penalty = calculate_text_message_penalty(age_of_message, start_penalty, decay)
     if penalty < 0:
         break
     df_train = df_train.append({'Age of Message': age_of_message, 'Penalty': penalty},
@@ -47,7 +48,7 @@ while num_test_cases < max_test_cases:
     age_of_message = rand_generator.randint(low=0, high=max_age_of_messages)
     try:
         df_test = df_test.append(
-            {'Age of Message': age_of_message, 'Penalty': start_penalty - (decay * age_of_message)}, ignore_index=True)
+            {'Age of Message': age_of_message, 'Penalty': calculate_text_message_penalty(age_of_message, start_penalty, decay)}, ignore_index=True)
         num_test_cases += 1
     except ValueError:
         continue

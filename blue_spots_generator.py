@@ -1,9 +1,11 @@
-import pandas as pd
-import numpy as np
 from datetime import datetime
 from os import mkdir
 from os.path import dirname, realpath, join, isdir
-import math
+
+import numpy as np
+import pandas as pd
+
+from mlm_utils import calculate_blue_spots_score
 
 look_ahead_time_in_seconds = 10
 distance_error_base = 0.1
@@ -16,64 +18,49 @@ max_average_distance = 10000
 min_average_hierarchical_distance = 0
 max_average_hierarchical_distance = 10
 
-cols = ['Distance since Last Update', 'Number of blue Nodes', 'Average Distance', 'Average Hierarchical distance', 'Score']
+generate_test_data = True
+cols = ['Distance since Last Update', 'Number of blue Nodes', 'Average Distance', 'Average Hierarchical distance',
+        'Score']
 
-if not isdir(join(dirname(realpath('__file__')), 'datasets')):
-    mkdir(join(dirname(realpath('__file__')), 'datasets'))
-
-if not isdir(join(dirname(realpath('__file__')), 'datasets', 'train')):
-    mkdir(join(dirname(realpath('__file__')), 'datasets', 'train'))
-
-if not isdir(join(dirname(realpath('__file__')), 'datasets', 'test')):
-    mkdir(join(dirname(realpath('__file__')), 'datasets', 'test'))
-
-if not isdir(join(dirname(realpath('__file__')), 'datasets', 'train', 'blue_spots')):
-    mkdir(join(dirname(realpath('__file__')), 'datasets', 'train', 'blue_spots'))
-
-if not isdir(join(dirname(realpath('__file__')), 'datasets', 'test', 'blue_spots')):
-    mkdir(join(dirname(realpath('__file__')), 'datasets', 'test', 'blue_spots'))
-
-file_counter = 0
-for distance_since_last_update in range(min_distance_since_last_update, max_distance_since_last_update+1):
-    error_penalty = distance_since_last_update * look_ahead_time_in_seconds * distance_error_base
-    new_data = {'Distance since Last Update': distance_since_last_update}
-    for num_blue_nodes in range(min_blue_nodes, max_blue_nodes+1):
-        score_for_all_nodes = num_blue_nodes * error_penalty
-        new_data.update({'Number of blue Nodes': num_blue_nodes})
-        for average_distance in range(min_average_distance, max_average_distance+1):
-            distance_modifier = math.pow(1-0.2, (average_distance/100)-1)
-            df_train = pd.DataFrame(columns=cols)
-            new_data.update({'Average Distance': average_distance})
-            for average_hierarchical_distance in range(min_average_hierarchical_distance, max_average_hierarchical_distance+1):
-                h_distance_modifier = math.pow(1-0.2, average_hierarchical_distance)
-                score = score_for_all_nodes * distance_modifier * h_distance_modifier
-                new_data.update({'Average Hierarchical distance': average_hierarchical_distance, 'Score': score})
-                df_train = df_train.append(new_data, ignore_index=True)
-            df_train.to_csv(join(dirname(realpath('__file__')), 'datasets', 'train', 'blue_spots', 'blue_spots_{0}_{1}.csv'.format(file_counter + 1, datetime.now().strftime("%Y%m%d%H%M%S"))), index=False)
-            file_counter += 1
-
-max_test_rows = 100
-num_test_rows = 0
 rand_generator = np.random.RandomState(0)
-df_test = pd.DataFrame(columns=cols)
-while num_test_rows < max_test_rows:
-    distance_since_last_update = rand_generator.randint(min_distance_since_last_update, max_distance_since_last_update+1)
-    new_data = {'Distance since Last Update': distance_since_last_update}
-    num_blue_nodes = rand_generator.randint(min_blue_nodes, max_blue_nodes+1)
-    new_data.update({'Number of blue Nodes': num_blue_nodes})
-    error_penalty = distance_since_last_update * look_ahead_time_in_seconds * distance_error_base
-    score_for_all_nodes = num_blue_nodes * error_penalty
-    average_distance = rand_generator.randint(min_average_distance, max_average_distance+1)
-    new_data.update({'Average Distance': average_distance})
-    distance_modifier = math.pow(1 - 0.2, (average_distance / 100) - 1)
-    average_hierarchical_distance = rand_generator.randint(min_average_hierarchical_distance, max_average_hierarchical_distance+1)
-    h_distance_modifier = math.pow(1 - 0.2, average_hierarchical_distance)
-    score = score_for_all_nodes * distance_modifier * h_distance_modifier
-    new_data.update({'Average Hierarchical distance': average_hierarchical_distance, 'Score': score})
-    try:
-        df_test = df_test.append(new_data, ignore_index=True)
-        num_test_rows += 1
-    except ValueError:
-        continue
-df_test.to_csv(join(dirname(realpath('__file__')), 'datasets', 'test', 'blue_spots', 'blue_spots_{0}.csv'.format(datetime.now().strftime("%Y%m%d%H%M%S"))), index=False)
 
+
+def generate_data(file_type, max_num_files, max_rows):
+    if not isdir(join(dirname(realpath('__file__')), 'datasets')):
+        mkdir(join(dirname(realpath('__file__')), 'datasets'))
+    if not isdir(join(dirname(realpath('__file__')), 'datasets', file_type)):
+        mkdir(join(dirname(realpath('__file__')), 'datasets', file_type))
+    if not isdir(join(dirname(realpath('__file__')), 'datasets', file_type, 'blue_spots')):
+        mkdir(join(dirname(realpath('__file__')), 'datasets', file_type, 'blue_spots'))
+
+    for _ in range(max_num_files):
+        df = pd.DataFrame(columns=cols)
+        num_rows = 0
+        while num_rows < max_rows:
+            distance_since_last_update = rand_generator.randint(min_distance_since_last_update,
+                                                                max_distance_since_last_update + 1)
+            new_data = {'Distance since Last Update': distance_since_last_update}
+            num_blue_nodes = rand_generator.randint(min_blue_nodes, max_blue_nodes + 1)
+            new_data.update({'Number of blue Nodes': num_blue_nodes})
+            average_distance = rand_generator.randint(min_average_distance, max_average_distance + 1)
+            new_data.update({'Average Distance': average_distance})
+            average_hierarchical_distance = rand_generator.randint(min_average_hierarchical_distance,
+                                                                   max_average_hierarchical_distance + 1)
+            score = calculate_blue_spots_score(distance_since_last_update, num_blue_nodes, average_distance,
+                                               average_hierarchical_distance, look_ahead_time_in_seconds,
+                                               distance_error_base)
+            new_data.update({'Average Hierarchical distance': average_hierarchical_distance, 'Score': score})
+            try:
+                df = df.append(new_data, ignore_index=True)
+                num_rows += 1
+            except ValueError:
+                print('Duplicate Blue Spots Row found for {0}'.format(new_data))
+                continue
+        df.to_csv(join(dirname(realpath('__file__')), 'datasets', file_type, 'blue_spots',
+                       'blue_spots_{0}.csv'.format(datetime.now().strftime("%Y%m%d%H%M%S"))),
+                  index=False)
+
+
+generate_data('train', 80, 1000)
+if generate_test_data:
+    generate_data('test', 1, 100)

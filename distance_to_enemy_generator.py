@@ -11,6 +11,7 @@ cols = ['#1 Nearest', '#2 Nearest', '#3 Nearest', '#4 Nearest', '#5 Nearest', 'M
 
 
 def generate_data(data_type, max_num_files, max_rows):
+    tuple_list = []
     if not isdir(join(dirname(realpath('__file__')), 'datasets')):
         mkdir(join(dirname(realpath('__file__')), 'datasets'))
 
@@ -25,10 +26,16 @@ def generate_data(data_type, max_num_files, max_rows):
         num_rows = 0
         while num_rows < max_rows:
             nearest_values = np.random.randint(0, max_nearest_values + 1, (5,))
-            new_data = {'Multiplier': calculate_distance_to_enemy_multiplier(nearest_values)}
+            multiplier = calculate_distance_to_enemy_multiplier(nearest_values)
+            new_data = {'Multiplier': multiplier}
             for i in range(5):
                 new_data.update({'#{0} Nearest'.format(i + 1): nearest_values[i]})
+            new_data_tuple = (nearest_values[0], nearest_values[1], nearest_values[2], nearest_values[3], nearest_values[4], multiplier)
+            if new_data_tuple in tuple_list:
+                print('Duplicate Distance to Enemy Row found for {0}'.format(new_data))
+                continue
             try:
+                tuple_list.append(new_data_tuple)
                 df = df.append(new_data, ignore_index=True)
                 num_rows += 1
             except ValueError:
@@ -39,6 +46,6 @@ def generate_data(data_type, max_num_files, max_rows):
                   index=False)
 
 
-generate_data('train', 40, 1000)
+generate_data('train', 50, 1000)
 if generate_test_data:
     generate_data('test', 1, 100)

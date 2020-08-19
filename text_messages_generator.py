@@ -44,13 +44,22 @@ max_test_cases = 100
 
 num_test_cases = 0
 max_age_of_messages = age_of_message
+tuple_list = []
 while num_test_cases < max_test_cases:
     age_of_message = rand_generator.randint(low=0, high=max_age_of_messages)
+    penalty = calculate_text_message_penalty(age_of_message, start_penalty, decay)
+    new_data_tuple = (age_of_message, penalty)
+    new_data = {'Age of Message': age_of_message, 'Penalty': penalty}
+    if new_data_tuple in tuple_list:
+        print('Duplicate Text Message Row found for {0}'.format(new_data))
+        continue
     try:
+        tuple_list.append(new_data_tuple)
         df_test = df_test.append(
-            {'Age of Message': age_of_message, 'Penalty': calculate_text_message_penalty(age_of_message, start_penalty, decay)}, ignore_index=True)
+            new_data, ignore_index=True)
         num_test_cases += 1
     except ValueError:
+        print('Duplicate Text Message Row found for {0}'.format(new_data))
         continue
 df_test.to_csv(join(dirname(realpath('__file__')), 'datasets', 'test', 'text_messages',
                     'text_messages_{0}.csv'.format(datetime.now().strftime('%Y%m%d%H%M%S'))), index=False)

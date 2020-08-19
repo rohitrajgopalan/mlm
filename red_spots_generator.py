@@ -27,6 +27,7 @@ rand_generator = np.random.RandomState(0)
 
 
 def generate_data(data_type, max_num_files, max_rows):
+    tuple_list = []
     if not isdir(join(dirname(realpath('__file__')), 'datasets')):
         mkdir(join(dirname(realpath('__file__')), 'datasets'))
 
@@ -57,7 +58,12 @@ def generate_data(data_type, max_num_files, max_rows):
             new_data.update({'Average Hierarchical distance': average_hierarchical_distance, 'Score': score})
             for i in range(5):
                 new_data.update({'#{0} Nearest'.format(i + 1): nearest_values[i]})
+            new_data_tuple = (distance_since_last_update, num_blue_nodes, average_distance, average_hierarchical_distance, nearest_values[0], nearest_values[1], nearest_values[2], nearest_values[3], nearest_values[4], score)
+            if new_data_tuple in tuple_list:
+                print('Duplicate Red Spots Row found for {0}'.format(new_data))
+                continue
             try:
+                tuple_list.append(new_data_tuple)
                 df = df.append(new_data, ignore_index=True)
                 num_rows += 1
             except ValueError:
@@ -68,6 +74,6 @@ def generate_data(data_type, max_num_files, max_rows):
                   index=False)
 
 
-generate_data('train', 80, 1000)
+generate_data('train', 100, 1000)
 if generate_test_data:
     generate_data('test', 1, 100)

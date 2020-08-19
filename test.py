@@ -77,7 +77,7 @@ models = [
          '#3 Nearest': 'int16',
          '#4 Nearest': 'int16',
          '#5 Nearest': 'int16',
-         'Score': 'int16'
+         'Score': 'int32'
      }}
 ]
 

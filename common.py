@@ -1,13 +1,12 @@
 from os.path import dirname, realpath, join
 
-import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_squared_error
 from supervised_learning.common import MethodType, load_from_directory, regressors
 from supervised_learning.supervised_learning_helper import SupervisedLearningHelper
 
 
-def get_regressors_with_best_mse(sheet_name, features, label, header_index, cols_to_types):
+def get_regressors_with_mse_less_than_one(sheet_name, features, label, header_index, cols_to_types):
     train_data_files_dir = join(dirname(realpath('__file__')), 'datasets', 'train', sheet_name)
     test_data_files_dir = join(dirname(realpath('__file__')), 'datasets', 'test', sheet_name)
     cols = [feature for feature in features]
@@ -35,9 +34,8 @@ def get_regressors_with_best_mse(sheet_name, features, label, header_index, cols
     df_results.to_csv(join(dirname(realpath('__file__')), 'results',
                            '{0}.csv'.format(sheet_name)),
                       index=False)
-    mse_min = np.min(df_results['Mean Squared Error'])
-    df_with_mse_min = df_results.loc[df_results['Mean Squared Error'] == mse_min]
+    df_selected_rows = df_results.loc[df_results['Mean Squared Error'] < 1.0]
     best_regressors = []
-    for index, row in df_with_mse_min.iterrows():
-        best_regressors.append((row['Regressor'], row['Enable Scaling'] == 'Yes', row['Enable Normalization'] == 'Yes'))
+    for index, row in df_selected_rows.iterrows():
+        best_regressors.append((row['Regressor'], row['Enable Scaling'] == 'Yes', row['Enable Normalization'] == 'Yes', row['Mean Squared Error']))
     return best_regressors

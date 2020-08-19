@@ -1,7 +1,7 @@
 from os import mkdir
 from os.path import dirname, realpath, join, isdir
 
-from common import get_regressors_with_best_mse
+from common import get_regressors_with_mse_less_than_one
 
 models = [
     {'sheet_name': 'text_messages',
@@ -85,9 +85,9 @@ if not isdir(join(dirname(realpath('__file__')), 'results')):
     mkdir(join(dirname(realpath('__file__')), 'results'))
 
 for model in models:
-    best_regressors = get_regressors_with_best_mse(model['sheet_name'], model['features'], model['label'],
-                                                   model['header'], model['cols_to_types'])
-    print('Best Regressors for {0}'.format(model['sheet_name']))
+    best_regressors = get_regressors_with_mse_less_than_one(model['sheet_name'], model['features'], model['label'],
+                                                            model['header'], model['cols_to_types'])
+    print('Regressors with MSE less than 1.00 for {0}'.format(model['sheet_name']))
     for item in best_regressors:
-        print('{0} {1} scaling and {2} normalization'.format(item[0], 'with' if item[1] else 'without',
-                                                             'with' if item[2] else 'without'))
+        print('{0} {1} scaling and {2} normalization: {3}'.format(item[0], 'with' if item[1] else 'without',
+                                                                  'with' if item[2] else 'without', item[3]))

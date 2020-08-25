@@ -1,0 +1,116 @@
+Regressors with MSE less than 1.00 for text_messages
+Support Vector Machine with scaling and without normalization: 0.184643114865278
+Lasso without scaling and without normalization: 3.6264730589451415e-05
+Decision Tree without scaling and without normalization: 0.0
+Decision Tree with scaling and without normalization: 0.0
+Linear Regression without scaling and without normalization: 3.156232481789268e-29
+Linear Regression with scaling and without normalization: 3.1656988126519206e-29
+Elastic Net without scaling and without normalization: 1.0639813249292305e-05
+K-Nearest Neighbour without scaling and without normalization: 6.94444444444484e-05
+K-Nearest Neighbour with scaling and without normalization: 6.94444444444484e-05
+Ridge without scaling and without normalization: 7.089725040005033e-13
+Ridge with scaling and without normalization: 0.0054983296276532615
+Random Forest without scaling and without normalization: 0.000287472222222168
+Random Forest with scaling and without normalization: 0.00031098611111105625
+
+Regressors with MSE less than 1.00 for sos_operational_context
+Support Vector Machine without scaling and without normalization: 0.010003496763947057
+Support Vector Machine without scaling and with normalization: 0.3699999999999999
+Support Vector Machine with scaling and without normalization: 0.029973914198828888
+Support Vector Machine with scaling and with normalization: 0.010045266588221498
+Lasso without scaling and without normalization: 0.06527621576801498
+Lasso without scaling and with normalization: 0.24979683545393494
+Lasso with scaling and without normalization: 0.24979683545393494
+Lasso with scaling and with normalization: 0.24979683545393494
+Decision Tree without scaling and without normalization: 0.0
+Decision Tree without scaling and with normalization: 0.2475
+Decision Tree with scaling and without normalization: 0.0
+Decision Tree with scaling and with normalization: 0.0
+Linear Regression without scaling and without normalization: 0.06434328782217938
+Linear Regression without scaling and with normalization: 0.2475
+Linear Regression with scaling and without normalization: 0.06434328782217938
+Linear Regression with scaling and with normalization: 0.0024835574456362666
+Elastic Net without scaling and without normalization: 0.06476777219575158
+Elastic Net without scaling and with normalization: 0.24979683545393494
+Elastic Net with scaling and without normalization: 0.24979683545393494
+Elastic Net with scaling and with normalization: 0.24979683545393494
+K-Nearest Neighbour without scaling and without normalization: 0.003599999999999998
+K-Nearest Neighbour without scaling and with normalization: 0.31000000000000005
+K-Nearest Neighbour with scaling and without normalization: 0.003599999999999998
+K-Nearest Neighbour with scaling and with normalization: 0.006400000000000001
+Neural Network without scaling and without normalization: 0.061665740546295804
+Neural Network without scaling and with normalization: 0.2523403069222779
+Neural Network with scaling and without normalization: 0.05959746313556948
+Neural Network with scaling and with normalization: 0.004277597480936982
+Ridge without scaling and without normalization: 0.06434330728433238
+Ridge without scaling and with normalization: 0.24802991861203919
+Ridge with scaling and without normalization: 0.06464432676817003
+Ridge with scaling and with normalization: 0.002487043955854755
+Random Forest without scaling and without normalization: 0.0015980000000000005
+Random Forest without scaling and with normalization: 0.24839261137787516
+Random Forest with scaling and without normalization: 0.0009060000000000002
+Random Forest with scaling and with normalization: 0.0
+
+Regressors with MSE less than 1.00 for tactical_graphics
+Lasso without scaling and without normalization: 1.4352738962384044e-06
+Decision Tree without scaling and without normalization: 0.0
+Decision Tree with scaling and without normalization: 0.0
+Linear Regression without scaling and without normalization: 5.296924877242267e-28
+Linear Regression with scaling and without normalization: 3.4326887860239717e-28
+Elastic Net without scaling and without normalization: 3.9559683878253794e-07
+K-Nearest Neighbour without scaling and without normalization: 7.050296428993064e-29
+K-Nearest Neighbour with scaling and without normalization: 5.182273805429708e-29
+Neural Network with scaling and without normalization: 0.16530906458548944
+Ridge without scaling and without normalization: 3.9975243606507374e-16
+Ridge with scaling and without normalization: 0.002006271794088586
+Random Forest without scaling and without normalization: 0.00011508000000018887
+Random Forest with scaling and without normalization: 8.575500000010866e-05
+
+Regressors with MSE less than 1.00 for sos
+Decision Tree without scaling and without normalization: 0.0
+Decision Tree with scaling and without normalization: 0.0
+
+Regressors with MSE less than 1.00 for blue_spots
+Decision Tree without scaling and without normalization: 1.8889861101500588e-08
+Decision Tree without scaling and with normalization: 3.736872954636285e-09
+Decision Tree with scaling and without normalization: 1.8889861101500555e-08
+Decision Tree with scaling and with normalization: 8.606466913489932e-09
+
+Regressors with MSE less than 1.00 for distance_to_enemy
+Support Vector Machine without scaling and without normalization: 0.10993809051748561
+Support Vector Machine without scaling and with normalization: 0.06043989390121658
+Support Vector Machine with scaling and without normalization: 0.024095245291864253
+Support Vector Machine with scaling and with normalization: 0.08149209848654912
+Lasso without scaling and without normalization: 0.08813582488839812
+Lasso without scaling and with normalization: 0.10586523329344003
+Lasso with scaling and without normalization: 0.10586523329344003
+Lasso with scaling and with normalization: 0.10586523329344003
+Decision Tree without scaling and without normalization: 0.0001390000000000007
+Decision Tree without scaling and with normalization: 0.024187
+Decision Tree with scaling and without normalization: 0.00022700000000000018
+Decision Tree with scaling and with normalization: 0.17476
+Linear Regression without scaling and without normalization: 0.0885993461897097
+Linear Regression without scaling and with normalization: 0.06880384010463604
+Linear Regression with scaling and without normalization: 0.08859934618970972
+Linear Regression with scaling and with normalization: 0.09212713245438364
+Elastic Net without scaling and without normalization: 0.0883541023841973
+Elastic Net without scaling and with normalization: 0.10586523329344003
+Elastic Net with scaling and without normalization: 0.10586523329344003
+Elastic Net with scaling and with normalization: 0.10586523329344003
+K-Nearest Neighbour without scaling and without normalization: 0.025699880000000005
+K-Nearest Neighbour without scaling and with normalization: 0.030457520000000005
+K-Nearest Neighbour with scaling and without normalization: 0.025693160000000007
+K-Nearest Neighbour with scaling and with normalization: 0.10813484
+Neural Network without scaling and without normalization: 0.10709403215995464
+Neural Network without scaling and with normalization: 0.01798309701359574
+Neural Network with scaling and without normalization: 6.536958487057306e-05
+Neural Network with scaling and with normalization: 0.0819279443636391
+Ridge without scaling and without normalization: 0.0885993461866674
+Ridge without scaling and with normalization: 0.06877666194167431
+Ridge with scaling and without normalization: 0.08859858857414503
+Ridge with scaling and with normalization: 0.09212596355214842
+Random Forest without scaling and without normalization: 7.182162135698492e-05
+Random Forest without scaling and with normalization: 0.017890838753747564
+Random Forest with scaling and without normalization: 8.697261765847227e-05
+Random Forest with scaling and with normalization: 0.07526512380217217
+

@@ -54,3 +54,4 @@ def calculate_sos_score(age_of_message, num_blue_nodes, base, decay):
 
 def calculate_sos_operational_context_mutliplier(seconds_since_last_sent_sos):
     return 2 if seconds_since_last_sent_sos < 121 else 1
+

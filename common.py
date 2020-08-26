@@ -21,17 +21,36 @@ def get_regressors_with_mse_less_than_ten(sheet_name, features, label, header_in
     expected_outputs = test_data[label]
 
     for regressor in regressors:
+        print('Regressor Type: {0}'.format(regressor))
         for enable_scaling in [False, True]:
             for enable_normalization in [False, True]:
-                model = SupervisedLearningHelper.choose_helper(MethodType.Regression, enable_scaling,
-                                                               enable_normalization, data=training_data,
-                                                               choosing_method=regressor)
-                actual_outputs = model.predict(inputs)
-                mse = mean_squared_error(expected_outputs, actual_outputs)
-                df_results = df_results.append({'Regressor': regressor,
-                                                'Enable Scaling': 'Yes' if enable_scaling else 'No',
-                                                'Enable Normalization': 'Yes' if enable_normalization else 'No',
-                                                'Mean Squared Error': mse}, ignore_index=True)
+                model = None
+                try:
+                    model = SupervisedLearningHelper.choose_helper(MethodType.Regression, enable_scaling,
+                                                                   enable_normalization, data=training_data,
+                                                                   use_grid_search=True,
+                                                                   choosing_method=regressor)
+                except ValueError:
+                    print(
+                        'Unable to use GridSearchCV for testing data using {0} {1} scaling and {2} normalization'.format(
+                            regressor,
+                            'with' if enable_scaling else 'without',
+                            'with' if enable_normalization else 'without'))
+                    print('Trying without GridSearchCV')
+                    model = SupervisedLearningHelper.choose_helper(MethodType.Regression, enable_scaling,
+                                                                   enable_normalization, data=training_data,
+                                                                   choosing_method=regressor)
+                finally:
+                    actual_outputs = model.predict(inputs)
+                    mse = mean_squared_error(expected_outputs, actual_outputs)
+                    df_results = df_results.append({'Regressor': regressor,
+                                                    'Enable Scaling': 'Yes' if enable_scaling else 'No',
+                                                    'Enable Normalization': 'Yes' if enable_normalization else 'No',
+                                                    'Mean Squared Error': mse}, ignore_index=True)
+                    print('Best Parameters for {0} {1} scaling and {2} normalization: {3}'.format(regressor,
+                                                                                                  'with' if enable_scaling else 'without',
+                                                                                                  'with' if enable_normalization else 'without',
+                                                                                                  model.best_parameters))
 
     df_selected_rows = df_results.loc[df_results['Mean Squared Error'] <= 10.0]
     df_selected_rows.to_csv(join(dirname(realpath('__file__')), 'results', '{0}.csv'.format(sheet_name)), index=False)

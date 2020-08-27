@@ -18,7 +18,6 @@ max_average_distance = 10000
 min_average_hierarchical_distance = 0
 max_average_hierarchical_distance = 10
 
-generate_test_data = True
 cols = ['Distance since Last Update', 'Number of blue Nodes', 'Average Distance', 'Average Hierarchical distance',
         'Score']
 
@@ -68,5 +67,4 @@ def generate_data(file_type, max_num_files, max_rows):
 
 
 generate_data('train', 100, 1000)
-if generate_test_data:
-    generate_data('test', 1, 100)
+generate_data('test', 1, 100)

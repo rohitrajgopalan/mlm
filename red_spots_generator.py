@@ -7,7 +7,6 @@ import pandas as pd
 
 from mlm_utils import calculate_red_spots_score
 
-generate_test_data = True
 look_ahead_time_in_seconds = 10
 distance_error_base = 0.2
 min_distance_since_last_update = 0
@@ -17,7 +16,7 @@ max_blue_nodes = 120
 min_average_distance = 1000
 max_average_distance = 10000
 min_average_hierarchical_distance = 0
-max_average_hierarchical_distance = 10
+max_average_hierarchical_distance = 4
 max_nearest_values = 1000
 
 cols = ['Distance since Last Update', 'Number of blue Nodes', 'Average Distance', 'Average Hierarchical distance',
@@ -41,7 +40,7 @@ def generate_data(data_type, max_num_files, max_rows):
         df = pd.DataFrame(columns=cols)
         num_rows = 0
         while num_rows < max_rows:
-            nearest_values = np.random.randint(0, max_nearest_values + 1, (5,))
+            nearest_values = rand_generator.randint(0, max_nearest_values + 1, (5,))
             distance_since_last_update = rand_generator.randint(min_distance_since_last_update,
                                                                 max_distance_since_last_update + 1)
             new_data = {'Distance since Last Update': distance_since_last_update}
@@ -58,7 +57,9 @@ def generate_data(data_type, max_num_files, max_rows):
             new_data.update({'Average Hierarchical distance': average_hierarchical_distance, 'Score': score})
             for i in range(5):
                 new_data.update({'#{0} Nearest'.format(i + 1): nearest_values[i]})
-            new_data_tuple = (distance_since_last_update, num_blue_nodes, average_distance, average_hierarchical_distance, nearest_values[0], nearest_values[1], nearest_values[2], nearest_values[3], nearest_values[4], score)
+            new_data_tuple = (
+                distance_since_last_update, num_blue_nodes, average_distance, average_hierarchical_distance,
+                nearest_values[0], nearest_values[1], nearest_values[2], nearest_values[3], nearest_values[4], score)
             if new_data_tuple in tuple_list:
                 print('Duplicate Red Spots Row found for {0}'.format(new_data))
                 continue
@@ -69,11 +70,11 @@ def generate_data(data_type, max_num_files, max_rows):
             except ValueError:
                 print('Duplicate Red Spots Row found for {0}'.format(new_data))
                 continue
+
         df.to_csv(join(dirname(realpath('__file__')), 'datasets', data_type, 'red_spots',
                        'red_spots_{0}.csv'.format(datetime.now().strftime("%Y%m%d%H%M%S"))),
                   index=False)
 
 
 generate_data('train', 100, 1000)
-if generate_test_data:
-    generate_data('test', 1, 100)
+generate_data('test', 1, 100)

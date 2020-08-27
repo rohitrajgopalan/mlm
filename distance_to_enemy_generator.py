@@ -6,7 +6,7 @@ from os.path import dirname, realpath, join, isdir
 from mlm_utils import calculate_distance_to_enemy_multiplier
 
 max_nearest_values = 1000
-generate_test_data = True
+rand_generator = np.random.RandomState(0)
 cols = ['#1 Nearest', '#2 Nearest', '#3 Nearest', '#4 Nearest', '#5 Nearest', 'Multiplier']
 
 
@@ -25,7 +25,7 @@ def generate_data(data_type, max_num_files, max_rows):
         df = pd.DataFrame(columns=cols)
         num_rows = 0
         while num_rows < max_rows:
-            nearest_values = np.random.randint(0, max_nearest_values + 1, (5,))
+            nearest_values = rand_generator.randint(0, max_nearest_values + 1, (5,))
             multiplier = calculate_distance_to_enemy_multiplier(nearest_values)
             new_data = {'Multiplier': multiplier}
             for i in range(5):
@@ -47,5 +47,4 @@ def generate_data(data_type, max_num_files, max_rows):
 
 
 generate_data('train', 10, 1000)
-if generate_test_data:
-    generate_data('test', 1, 100)
+generate_data('test', 1, 100)

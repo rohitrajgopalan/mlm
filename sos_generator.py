@@ -9,7 +9,7 @@ base = 20
 decay = 4 / 60
 min_age_of_message = 0
 max_age_of_message = 350
-min_num_blue_nodes = 0
+min_num_blue_nodes = 12
 max_num_blue_nodes = 120
 
 cols = ['Age of Message', 'Number of blue Nodes', 'Score']
@@ -37,6 +37,9 @@ for age_of_message in range(min_age_of_message, max_age_of_message + 1):
         score = calculate_sos_score(age_of_message, num_blue_nodes, base, decay)
         new_data.update({'Number of blue Nodes': num_blue_nodes, 'Score': score})
         df_train = df_train.append(new_data, ignore_index=True)
+    score = calculate_sos_score(age_of_message, 1, base, decay)
+    new_data.update({'Number of blue Nodes': 1, 'Score': score})
+    df_train = df_train.append(new_data, ignore_index=True)
     df_train.to_csv(join(dirname(realpath('__file__')), 'datasets', 'train', 'sos', 'sos_{0}_{1}.csv'.format(file_counter + 1, datetime.now().strftime("%Y%m%d%H%M%S"))), index=False)
     file_counter += 1
 

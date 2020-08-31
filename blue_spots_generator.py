@@ -66,5 +66,5 @@ def generate_data(file_type, max_num_files, max_rows):
                   index=False)
 
 
-generate_data('train', 100, 1000)
+generate_data('train', 500, 1000)
 generate_data('test', 1, 100)

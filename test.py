@@ -86,10 +86,8 @@ if not isdir(join(dirname(realpath('__file__')), 'results')):
     mkdir(join(dirname(realpath('__file__')), 'results'))
 
 for model in models:
-    if model['sheet_name'] in ['text_messages', 'tactical_graphics', 'sos', 'distance_to_enemy']:
-        test_on_regressors(model['sheet_name'], model['features'], model['label'], model['header'], model['cols_to_types'])
-    elif model['sheet_name'] == 'sos_operational_context':
+    if model['sheet_name'] == 'sos_operational_context':
         test_on_classifiers(model['sheet_name'], model['features'], model['label'], model['header'], model['cols_to_types'])
     else:
-        test_with_svr(model['sheet_name'], model['features'], model['label'], model['header'], model['cols_to_types'])
-        test_on_nn(model['sheet_name'], model['features'], model['label'], model['header'], model['cols_to_types'])
+        test_on_regressors(model['sheet_name'], model['features'], model['label'], model['header'], model['cols_to_types'])
+    test_on_nn(model['sheet_name'], model['features'], model['label'], model['header'], model['cols_to_types'])

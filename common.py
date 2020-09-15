@@ -2,6 +2,7 @@ from os.path import dirname, realpath, join
 import sys
 import pandas as pd
 from sklearn.metrics import mean_squared_error, accuracy_score
+from sklearn.svm import SVR, LinearSVR, NuSVR
 from supervised_learning.common import MethodType, load_from_directory, regressors, classifiers
 from supervised_learning.supervised_learning_helper import SupervisedLearningHelper
 import numpy as np
@@ -9,6 +10,57 @@ import keras as K
 from sklearn.preprocessing import RobustScaler, Normalizer
 
 sys.setrecursionlimit(10000)
+
+
+def test_with_svr(sheet_name, features, label, header_index, cols_to_types):
+    df_results = pd.DataFrame(columns=['SVM', 'Enable Scaling', 'Enable Normalization', 'Mean Squared Error'])
+    training_data, train_inputs, train_outputs, test_inputs, test_outputs = train_test_data(sheet_name, features, label,
+                                                                                            header_index, cols_to_types)
+    scaler = RobustScaler()
+    normalizer = Normalizer()
+
+    for enable_scaling in [False, True]:
+        for enable_normalization in [False, True]:
+            svr = SVR(kernel='rbf', gamma='auto')
+            linear_svr = LinearSVR()
+            nu_svr = NuSVR()
+            if enable_scaling:
+                train_inputs = scaler.fit_transform(train_inputs)
+                test_inputs = scaler.transform(test_inputs)
+            if enable_normalization:
+                train_inputs = normalizer.fit_transform(train_inputs)
+                test_inputs = normalizer.transform(test_inputs)
+            svr.fit(train_inputs, train_outputs)
+            actual_outputs = svr.predict(test_inputs)
+            score = mean_squared_error(test_outputs,
+                                       actual_outputs)
+            df_results = df_results.append(
+                {'SVM': 'SVR',
+                 'Enable Scaling': 'Yes' if enable_scaling else 'No',
+                 'Enable Normalization': 'Yes' if enable_normalization else 'No',
+                 'Mean Squared Error': score},
+                ignore_index=True)
+            linear_svr.fit(train_inputs, train_outputs)
+            actual_outputs = linear_svr.predict(test_inputs)
+            score = mean_squared_error(test_outputs,
+                                       actual_outputs)
+            df_results = df_results.append(
+                {'SVM': 'Linear SVR',
+                 'Enable Scaling': 'Yes' if enable_scaling else 'No',
+                 'Enable Normalization': 'Yes' if enable_normalization else 'No',
+                 'Mean Squared Error': score},
+                ignore_index=True)
+            nu_svr.fit(train_inputs, train_outputs)
+            actual_outputs = nu_svr.predict(test_inputs)
+            score = mean_squared_error(test_outputs,
+                                       actual_outputs)
+            df_results = df_results.append(
+                {'SVM': 'Nu SVR',
+                 'Enable Scaling': 'Yes' if enable_scaling else 'No',
+                 'Enable Normalization': 'Yes' if enable_normalization else 'No',
+                 'Mean Squared Error': score},
+                ignore_index=True)
+    df_results.to_csv(join(dirname(realpath('__file__')), 'results', '{0}_svm.csv'.format(sheet_name)), index=False)
 
 
 def test_on_nn(sheet_name, features, label, header_index, cols_to_types):
@@ -39,10 +91,10 @@ def test_on_nn(sheet_name, features, label, header_index, cols_to_types):
                     model.compile(optimizer='adam', loss='mse')
                     if enable_scaling:
                         train_inputs = scaler.fit_transform(train_inputs)
-                        test_inputs = scaler.fit(test_inputs)
+                        test_inputs = scaler.transform(test_inputs)
                     if enable_normalization:
                         train_inputs = normalizer.fit_transform(train_inputs)
-                        test_inputs = normalizer.fit(test_inputs)
+                        test_inputs = normalizer.transform(test_inputs)
                     model.fit(train_inputs, train_outputs)
                     actual_outputs = model.predict(test_inputs)
                     score = mean_squared_error(test_outputs,

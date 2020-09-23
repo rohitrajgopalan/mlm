@@ -6,13 +6,11 @@ import numpy as np
 from mlm_utils import calculate_text_message_penalty
 
 age_of_message = 0
-decay = 5 / 60
-start_penalty = 49.625
 
 cols = ['Age of Message', 'Penalty']
 df_train = pd.DataFrame(columns=cols)
 df_test = pd.DataFrame(columns=cols)
-penalty = start_penalty
+penalty = 49.625
 
 if not isdir(join(dirname(realpath('__file__')), 'datasets')):
     mkdir(join(dirname(realpath('__file__')), 'datasets'))
@@ -30,7 +28,7 @@ if not isdir(join(dirname(realpath('__file__')), 'datasets', 'test', 'text_messa
     mkdir(join(dirname(realpath('__file__')), 'datasets', 'test', 'text_messages'))
 
 while penalty >= 0:
-    penalty = calculate_text_message_penalty(age_of_message, start_penalty, decay)
+    penalty = calculate_text_message_penalty(age_of_message)
     if penalty < 0:
         break
     df_train = df_train.append({'Age of Message': age_of_message, 'Penalty': penalty},
@@ -47,7 +45,7 @@ max_age_of_messages = age_of_message
 tuple_list = []
 while num_test_cases < max_test_cases:
     age_of_message = rand_generator.randint(low=0, high=max_age_of_messages)
-    penalty = calculate_text_message_penalty(age_of_message, start_penalty, decay)
+    penalty = calculate_text_message_penalty(age_of_message)
     new_data_tuple = (age_of_message, penalty)
     new_data = {'Age of Message': age_of_message, 'Penalty': penalty}
     if new_data_tuple in tuple_list:

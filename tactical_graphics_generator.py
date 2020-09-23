@@ -6,10 +6,6 @@ import numpy as np
 from mlm_utils import calculate_tactical_graphics_score
 
 age_of_message = 0
-multiplier = 3
-start_cum_message_score = 49.925
-decay = 1/60
-
 cols = ['Age of Message', 'Score (Lazy)']
 df_train = pd.DataFrame(columns=cols)
 df_test = pd.DataFrame(columns=cols)
@@ -29,9 +25,9 @@ if not isdir(join(dirname(realpath('__file__')), 'datasets', 'train', 'tactical_
 if not isdir(join(dirname(realpath('__file__')), 'datasets', 'test', 'tactical_graphics')):
     mkdir(join(dirname(realpath('__file__')), 'datasets', 'test', 'tactical_graphics'))
 
-score = start_cum_message_score * multiplier
+score = 49.925 * 3
 while score >= 0:
-    score = calculate_tactical_graphics_score(age_of_message, start_cum_message_score, decay, multiplier)
+    score = calculate_tactical_graphics_score(age_of_message)
     if score < 0:
         break
     df_train = df_train.append({'Age of Message': age_of_message, 'Score (Lazy)': score}, ignore_index=True)
@@ -47,7 +43,7 @@ max_age_of_messages = age_of_message
 tuple_list = []
 while num_test_cases < max_test_cases:
     age_of_message = rand_generator.randint(low=0, high=max_age_of_messages)
-    score = calculate_tactical_graphics_score(age_of_message, start_cum_message_score, decay, multiplier)
+    score = calculate_tactical_graphics_score(age_of_message)
     new_data = {'Age of Message': age_of_message, 'Score (Lazy)': score}
     new_data_tuple = (age_of_message, score)
     if score < 0:

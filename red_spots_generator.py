@@ -7,8 +7,6 @@ import pandas as pd
 
 from mlm_utils import calculate_red_spots_score
 
-look_ahead_time_in_seconds = 10
-distance_error_base = 0.2
 min_distance_since_last_update = 0
 max_distance_since_last_update = 3000
 min_blue_nodes = 12
@@ -51,9 +49,7 @@ def generate_data(data_type, max_num_files, max_rows):
             average_hierarchical_distance = rand_generator.randint(min_average_hierarchical_distance,
                                                                    max_average_hierarchical_distance + 1)
             score = calculate_red_spots_score(distance_since_last_update, num_blue_nodes, average_distance,
-                                              average_hierarchical_distance, look_ahead_time_in_seconds,
-                                              distance_error_base,
-                                              nearest_values)
+                                              average_hierarchical_distance, nearest_values)
             new_data.update({'Average Hierarchical distance': average_hierarchical_distance, 'Score': score})
             for i in range(5):
                 new_data.update({'#{0} Nearest'.format(i + 1): nearest_values[i]})

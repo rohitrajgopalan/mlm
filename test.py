@@ -90,4 +90,4 @@ for model in models:
         test_on_classifiers(model['sheet_name'], model['features'], model['label'], model['header'], model['cols_to_types'])
     else:
         test_on_regressors(model['sheet_name'], model['features'], model['label'], model['header'], model['cols_to_types'])
-    test_on_nn(model['sheet_name'], model['features'], model['label'], model['header'], model['cols_to_types'])
+    # test_on_nn(model['sheet_name'], model['features'], model['label'], model['header'], model['cols_to_types'])

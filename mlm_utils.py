@@ -8,6 +8,29 @@ from supervised_learning.supervised_learning_helper import SupervisedLearningHel
 import keras as K
 
 
+def calculate_score(message_type, **args):
+    if message_type == 'text_messages':
+        return calculate_text_message_penalty(args['age_of_message'])
+    elif message_type == 'tactical_graphics':
+        return calculate_tactical_graphics_score(args['age_of_message'])
+    elif message_type == 'sos':
+        return calculate_sos_score(args['age_of_message'], args['num_blue_nodes'])
+    elif message_type == 'red_spots':
+        return calculate_red_spots_score(args['distance_since_last_update'], args['num_blue_nodes'],
+                                         args['average_distance'], args['average_hierarchical_distance'],
+                                         args['nearest_values'])
+    elif message_type == 'blue_spots':
+        return calculate_blue_spots_score(args['distance_since_last_update'], args['num_blue_nodes'],
+                                          args['average_distance'], args['average_hierarchical_distance'])
+
+
+def calculate_multiplier(context_type, **args):
+    if context_type == 'distance_to_enemy':
+        return calculate_distance_to_enemy_multiplier(args['nearest_values'])
+    elif context_type == 'sos_operational_context':
+        return calculate_sos_operational_context_mutliplier(args['seconds_since_last_sos'])
+
+
 def calculate_blue_spots_score(distance_since_last_update, num_blue_nodes, average_distance,
                                average_hierarchical_distance, look_ahead_time_in_seconds=10, distance_error_base=0.1):
     error_penalty = distance_since_last_update * look_ahead_time_in_seconds * distance_error_base
@@ -19,7 +42,8 @@ def calculate_blue_spots_score(distance_since_last_update, num_blue_nodes, avera
 
 
 def calculate_red_spots_score(distance_since_last_update, num_blue_nodes, average_distance,
-                              average_hierarchical_distance, nearest_values, look_ahead_time_in_seconds=10, distance_error_base=0.2):
+                              average_hierarchical_distance, nearest_values, look_ahead_time_in_seconds=10,
+                              distance_error_base=0.2):
     error_penalty = distance_since_last_update * look_ahead_time_in_seconds * distance_error_base
     score_for_all_nodes = num_blue_nodes * error_penalty
     multipliers = np.where(nearest_values < 100, 0.25, 0)
@@ -33,7 +57,7 @@ def calculate_red_spots_score(distance_since_last_update, num_blue_nodes, averag
 
 
 def calculate_distance_to_enemy_multiplier(nearest_values):
-    multipliers = np.where(nearest_values >= 100, 0, 1 - (nearest_values / 100))
+    multipliers = np.where(nearest_values < 100, 1 - (nearest_values / 100), 0)
     return np.sum(multipliers) + 1
 
 
@@ -47,7 +71,7 @@ def calculate_tactical_graphics_score(age_of_message, start_cum_message_score=49
     return round(score, 5)
 
 
-def calculate_sos_score(age_of_message, num_blue_nodes, base=20, decay=4/60):
+def calculate_sos_score(age_of_message, num_blue_nodes, base=20, decay=4 / 60):
     cum_message_score = 0
     for i in range(10):
         cum_message_score += (base - ((age_of_message + i) * decay))

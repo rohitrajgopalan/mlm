@@ -5,7 +5,11 @@ from sklearn.preprocessing import Normalizer
 from supervised_learning.common import load_from_directory, MethodType, ScalingType, get_scaler_by_type
 import pandas as pd
 from supervised_learning.supervised_learning_helper import SupervisedLearningHelper
-import keras as K
+
+try:
+    import keras as K
+except ImportError:
+    from tensorflow import keras as K
 
 
 def calculate_score(message_type, **args):

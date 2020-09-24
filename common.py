@@ -5,7 +5,7 @@ import pandas as pd
 from sklearn.metrics import mean_squared_error, accuracy_score
 from sklearn.preprocessing import Normalizer
 from supervised_learning.common import MethodType, load_from_directory, ScalingType, \
-    get_scaler_by_type, regressors, classifiers
+    get_scaler_by_type, regressors, classifiers, select_method
 
 from mlm_utils import generate_neural_network, generate_scikit_model
 
@@ -16,8 +16,7 @@ def test_on_nn(sheet_name, features, label, header_index, cols_to_types, method_
     df_results = pd.DataFrame(
         columns=['Alpha', 'Output Activation', 'Scaling Type', 'Enable Normalization',
                  'Mean Squared Error' if method_type == MethodType.Regression else 'Accuracy'])
-    training_data, train_inputs, train_outputs, test_inputs, test_outputs = train_test_data(sheet_name, features, label,
-                                                                                            header_index, cols_to_types)
+    training_data, train_inputs, train_outputs, test_inputs, test_outputs = train_test_data(sheet_name, features, label)
     normalizer = Normalizer()
 
     for alpha in range(2, 11):
@@ -46,29 +45,28 @@ def test_on_nn(sheet_name, features, label, header_index, cols_to_types, method_
     df_results.to_csv(join(dirname(realpath('__file__')), 'results', '{0}_nn.csv'.format(sheet_name)), index=False)
 
 
-def train_test_data(sheet_name, features, label, header_index, cols_to_types):
+def train_test_data(sheet_name, features, label):
     train_data_files_dir = join(dirname(realpath('__file__')), 'datasets', 'train', sheet_name)
     test_data_files_dir = join(dirname(realpath('__file__')), 'datasets', 'test', sheet_name)
     cols = [feature for feature in features]
     cols.append(label)
 
-    training_data = load_from_directory(train_data_files_dir, cols, True, sheet_name, header_index, cols_to_types)
+    training_data = load_from_directory(train_data_files_dir, cols, True, sheet_name)
     train_inputs = training_data[features]
     train_outputs = training_data[label]
-    test_data = load_from_directory(test_data_files_dir, cols, True, sheet_name, header_index, cols_to_types)
+    test_data = load_from_directory(test_data_files_dir, cols, True, sheet_name)
     test_inputs = test_data[features]
     test_outputs = test_data[label]
 
     return training_data, train_inputs, train_outputs, test_inputs, test_outputs
 
 
-def test_on_methods(sheet_name, features, label, header_index, cols_to_types, method_type):
+def test_on_methods(sheet_name, features, label, method_type):
     df_results = pd.DataFrame(
         columns=['Regressor' if method_type == MethodType.Regression else 'Classifier', 'Scaling Type',
                  'Enable Normalization', 'Use Default Params',
                  'Mean Squared Error' if method_type == MethodType.Regression else 'Accuracy'])
-    training_data, train_inputs, train_outputs, test_inputs, test_outputs = train_test_data(sheet_name, features, label,
-                                                                                            header_index, cols_to_types)
+    training_data, _, _, test_inputs, test_outputs = train_test_data(sheet_name, features, label)
     methods = regressors if method_type == MethodType.Regression else classifiers
     for method_name in methods:
         for use_grid_search in [False, True]:
@@ -93,9 +91,9 @@ def test_on_methods(sheet_name, features, label, header_index, cols_to_types, me
     df_results.to_csv(join(dirname(realpath('__file__')), 'results', '{0}.csv'.format(sheet_name)), index=False)
 
 
-def test_on_regressors(sheet_name, features, label, header_index, cols_to_types):
-    test_on_methods(sheet_name, features, label, header_index, cols_to_types, MethodType.Regression)
+def test_on_regressors(sheet_name, features, label):
+    test_on_methods(sheet_name, features, label, MethodType.Regression)
 
 
-def test_on_classifiers(sheet_name, features, label, header_index, cols_to_types):
-    test_on_methods(sheet_name, features, label, header_index, cols_to_types, MethodType.Classification)
+def test_on_classifiers(sheet_name, features, label):
+    test_on_methods(sheet_name, features, label, MethodType.Classification)

@@ -33,7 +33,7 @@ def generate_data(is_test):
     sos_data = pd.DataFrame(columns=sos_cols)
 
     for age_of_message_raw in np.arange(0, 595 if is_test else 596, 5 if is_test else 1):
-        age_of_message = rand_generator.randint(low=age_of_message_raw + 1,
+        age_of_message = rand_generator.randint(low=age_of_message_raw,
                                                 high=age_of_message_raw + 5) if is_test else age_of_message_raw
         text_message_score = calculate_score('text_messages', age_of_message=age_of_message)
         if text_message_score > 0:
@@ -46,7 +46,7 @@ def generate_data(is_test):
         if age_of_message > 350:
             continue
         for num_blue_nodes_raw in np.arange(0, 120 if is_test else 121, 5 if is_test else 1):
-            num_blue_nodes = rand_generator.randint(low=num_blue_nodes_raw + 1,
+            num_blue_nodes = rand_generator.randint(low=num_blue_nodes_raw,
                                                     high=num_blue_nodes_raw + 5) if is_test else num_blue_nodes_raw
             sos_score = calculate_score('sos', age_of_message=age_of_message, num_blue_nodes=num_blue_nodes)
             sos_data = sos_data.append(

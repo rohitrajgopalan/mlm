@@ -24,7 +24,8 @@ def test_on_nn(sheet_name, features, label, header_index, cols_to_types, method_
             scaler = get_scaler_by_type(scaling_type)
             for enable_normalization in [False, True]:
                 for output_activation in ['linear', 'softplus']:
-                    model = generate_neural_network(method_type, len(training_data.index), len(features), alpha, output_activation)
+                    model = generate_neural_network(method_type, len(training_data.index), len(features), alpha,
+                                                    output_activation)
                     if scaler is not None:
                         train_inputs = scaler.fit_transform(train_inputs)
                         test_inputs = scaler.transform(test_inputs)
@@ -34,7 +35,8 @@ def test_on_nn(sheet_name, features, label, header_index, cols_to_types, method_
                     model.fit(train_inputs, train_outputs)
                     actual_outputs = model.predict(test_inputs)
                     score = mean_squared_error(test_outputs,
-                                               actual_outputs) if method_type == MethodType.Regression else accuracy_score(test_outputs, actual_outputs)
+                                               actual_outputs) if method_type == MethodType.Regression else accuracy_score(
+                        test_outputs, actual_outputs)
                     df_results = df_results.append(
                         {'Alpha': alpha,
                          'Output Activation': output_activation,
@@ -64,7 +66,7 @@ def train_test_data(sheet_name, features, label):
 def test_on_methods(sheet_name, features, label, method_type):
     df_results = pd.DataFrame(
         columns=['Regressor' if method_type == MethodType.Regression else 'Classifier', 'Scaling Type',
-                 'Enable Normalization', 'Use Default Params', 'Cross Validation'
+                 'Enable Normalization', 'Use Default Params', 'Cross Validation',
                  'Mean Squared Error' if method_type == MethodType.Regression else 'Accuracy'])
     training_data, _, _, test_inputs, test_outputs = train_test_data(sheet_name, features, label)
     methods = regressors if method_type == MethodType.Regression else classifiers
@@ -72,10 +74,11 @@ def test_on_methods(sheet_name, features, label, method_type):
         for scaling_type in ScalingType.all():
             for enable_normalization in [False, True]:
                 for use_grid_search in [False, True]:
-                    cross_validations = list(range(0, 11)) if use_grid_search else [0]
+                    cross_validations = list(range(2, 11)) if use_grid_search else [1]
                     for cv in cross_validations:
                         try:
-                            model = generate_scikit_model(method_type, training_data, method_name, scaling_type, enable_normalization, use_grid_search, cv)
+                            model = generate_scikit_model(method_type, training_data, method_name, scaling_type,
+                                                          enable_normalization, use_grid_search, cv)
                             actual_outputs = model.predict(test_inputs)
                             score = mean_squared_error(test_outputs,
                                                        actual_outputs) if method_type == MethodType.Regression else accuracy_score(

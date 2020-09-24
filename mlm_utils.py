@@ -105,9 +105,10 @@ def generate_neural_network(method_type, num_samples, num_features, alpha, outpu
 
 
 def generate_scikit_model(method_type, data, model_name, scaling_type=ScalingType.NONE, enable_normalization=False,
-                          use_grid_search=True):
+                          use_grid_search=True, cv=0):
     return SupervisedLearningHelper.choose_helper(method_type, scaling_type, enable_normalization, data=data,
-                                                  use_grid_search=use_grid_search, choosing_method=model_name)
+                                                  use_grid_search=use_grid_search, choosing_method=model_name,
+                                                  cv=cv)
 
 
 def load_best_scikit_model(training_data, sheet_name, method_type=MethodType.Regression):

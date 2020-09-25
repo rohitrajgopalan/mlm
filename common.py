@@ -7,7 +7,7 @@ from sklearn.preprocessing import Normalizer
 from supervised_learning.common import MethodType, load_from_directory, ScalingType, \
     get_scaler_by_type, regressors, classifiers, select_method
 
-from mlm_utils import generate_neural_network, generate_scikit_model
+from mlm_utils import generate_neural_network, generate_scikit_model, get_scikit_model_combinations
 
 sys.setrecursionlimit(10000)
 
@@ -69,30 +69,26 @@ def test_on_methods(sheet_name, features, label, method_type):
                  'Enable Normalization', 'Use Default Params', 'Cross Validation',
                  'Mean Squared Error' if method_type == MethodType.Regression else 'Accuracy'])
     training_data, _, _, test_inputs, test_outputs = train_test_data(sheet_name, features, label)
-    methods = regressors if method_type == MethodType.Regression else classifiers
-    for method_name in methods:
-        for scaling_type in ScalingType.all():
-            for enable_normalization in [False, True]:
-                for use_grid_search in [False, True]:
-                    cross_validations = list(range(2, 11)) if use_grid_search else [1]
-                    for cv in cross_validations:
-                        try:
-                            model = generate_scikit_model(method_type, training_data, method_name, scaling_type,
-                                                          enable_normalization, use_grid_search, cv)
-                            actual_outputs = model.predict(test_inputs)
-                            score = mean_squared_error(test_outputs,
-                                                       actual_outputs) if method_type == MethodType.Regression else accuracy_score(
-                                test_outputs, actual_outputs)
-                            df_results = df_results.append(
-                                {'Regressor' if method_type == MethodType.Regression else 'Classifier': method_name,
-                                 'Scaling Type': scaling_type.name,
-                                 'Enable Normalization': 'Yes' if enable_normalization else 'No',
-                                 'Use Default Params': 'No' if use_grid_search else 'Yes',
-                                 'Cross Validation': cv,
-                                 'Mean Squared Error' if method_type == MethodType.Regression else 'Accuracy': score},
-                                ignore_index=True)
-                        except:
-                            continue
+    combinations = get_scikit_model_combinations(method_type)
+    for combination in combinations:
+        method_name, scaling_type, enable_normalization, use_grid_search, cv = combination
+        try:
+            model = generate_scikit_model(method_type, training_data, method_name, scaling_type,
+                                          enable_normalization, use_grid_search, cv)
+            actual_outputs = model.predict(test_inputs)
+            score = mean_squared_error(test_outputs,
+                                       actual_outputs) if method_type == MethodType.Regression else accuracy_score(
+                test_outputs, actual_outputs)
+            df_results = df_results.append(
+                {'Regressor' if method_type == MethodType.Regression else 'Classifier': method_name,
+                 'Scaling Type': scaling_type.name,
+                 'Enable Normalization': 'Yes' if enable_normalization else 'No',
+                 'Use Default Params': 'No' if use_grid_search else 'Yes',
+                 'Cross Validation': cv,
+                 'Mean Squared Error' if method_type == MethodType.Regression else 'Accuracy': score},
+                ignore_index=True)
+        except:
+            continue
 
     df_results.to_csv(join(dirname(realpath('__file__')), 'results', '{0}.csv'.format(sheet_name)), index=False)
 

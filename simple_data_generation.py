@@ -35,22 +35,28 @@ def generate_data(is_test):
     for age_of_message_raw in np.arange(0, 595 if is_test else 596, 5 if is_test else 1):
         age_of_message = rand_generator.randint(low=age_of_message_raw,
                                                 high=age_of_message_raw + 5) if is_test else age_of_message_raw
-        text_message_score = calculate_score('text_messages', age_of_message=age_of_message)
+        new_text_message = {'Age of Message': age_of_message}
+        new_tactical_graphic = {'Age of Message': age_of_message}
+        new_sos = {'Age of Message': age_of_message}
+        text_message_label, text_message_score = calculate_score('text_messages', new_text_message)
+        new_text_message.update({'Penalty': text_message_score})
         if text_message_score > 0:
-            text_message_data = text_message_data.append(
-                {'Age of Message': age_of_message, 'Penalty': text_message_score}, ignore_index=True)
-        tactical_graphics_score = calculate_score('tactical_graphics', age_of_message=age_of_message)
+            text_message_data = text_message_data.append(new_text_message, ignore_index=True)
+
+        tactical_graphics_score = calculate_score('tactical_graphics', new_tactical_graphic)
+        new_tactical_graphic.update({'Score (Lazy)': tactical_graphics_score})
         if tactical_graphics_score > 0:
-            tactical_graphics_data = tactical_graphics_data.append(
-                {'Age of Message': age_of_message, 'Score (Lazy)': tactical_graphics_score}, ignore_index=True)
+            tactical_graphics_data = tactical_graphics_data.append(new_tactical_graphic, ignore_index=True)
+
         if age_of_message > 350:
             continue
         for num_blue_nodes_raw in np.arange(0, 120 if is_test else 121, 5 if is_test else 1):
             num_blue_nodes = rand_generator.randint(low=num_blue_nodes_raw,
                                                     high=num_blue_nodes_raw + 5) if is_test else num_blue_nodes_raw
-            sos_score = calculate_score('sos', age_of_message=age_of_message, num_blue_nodes=num_blue_nodes)
-            sos_data = sos_data.append(
-                {'Age of Message': age_of_message, 'Number of blue Nodes': num_blue_nodes, 'Score': sos_score}, ignore_index=True)
+            new_sos.update({'Number of blue Nodes': num_blue_nodes})
+            sos_score = calculate_score('sos', new_sos)
+            new_sos.update({'Score': sos_score})
+            sos_data = sos_data.append(new_sos, ignore_index=True)
 
     text_message_data.to_csv(
         join(dirname(realpath('__file__')), 'datasets', 'test' if is_test else 'train', 'text_messages',

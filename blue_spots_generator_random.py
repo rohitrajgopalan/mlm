@@ -9,7 +9,7 @@ from mlm_utils import calculate_blue_spots_score
 
 min_distance_since_last_update = 0
 max_distance_since_last_update = 3000
-min_blue_nodes = 12
+min_blue_nodes = 0
 max_blue_nodes = 120
 min_average_distance = 1000
 max_average_distance = 10000
@@ -63,5 +63,5 @@ def generate_data(file_type, max_num_files, max_rows):
                   index=False)
 
 
-generate_data('train', 10, 1000)
+generate_data('train', 1000, 1000)
 generate_data('test', 1, 100)

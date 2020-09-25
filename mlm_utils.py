@@ -2,7 +2,8 @@ import math
 from os.path import dirname, realpath, join
 import numpy as np
 from sklearn.preprocessing import Normalizer
-from supervised_learning.common import load_from_directory, MethodType, ScalingType, get_scaler_by_type
+from supervised_learning.common import load_from_directory, MethodType, ScalingType, get_scaler_by_type, regressors, \
+    classifiers
 import pandas as pd
 from supervised_learning.supervised_learning_helper import SupervisedLearningHelper
 
@@ -12,27 +13,53 @@ except ImportError:
     from tensorflow import keras as K
 
 
-def calculate_score(message_type, **args):
+def calculate_score(message_type, args):
     if message_type == 'text_messages':
-        return calculate_text_message_penalty(args['age_of_message'])
+        return calculate_text_message_penalty(
+            args['Age of Message'] if 'Age of Message' in args else args['age_of_message'])
     elif message_type == 'tactical_graphics':
-        return calculate_tactical_graphics_score(args['age_of_message'])
+        return calculate_tactical_graphics_score(
+            args['Age of Message'] if 'Age of Message' in args else args['age_of_message'])
     elif message_type == 'sos':
-        return calculate_sos_score(args['age_of_message'], args['num_blue_nodes'])
-    elif message_type == 'red_spots':
-        return calculate_red_spots_score(args['distance_since_last_update'], args['num_blue_nodes'],
-                                         args['average_distance'], args['average_hierarchical_distance'],
-                                         args['nearest_values'])
+        return calculate_sos_score(
+            args['Age of Message'] if 'Age of Message' in args else args['age_of_message'],
+            args['Number of blue Nodes'] if 'Number of blue Nodes' in args else args['num_blue_nodes'])
     elif message_type == 'blue_spots':
-        return calculate_blue_spots_score(args['distance_since_last_update'], args['num_blue_nodes'],
-                                          args['average_distance'], args['average_hierarchical_distance'])
+        return calculate_blue_spots_score(
+            args['Distance since Last Update'] if 'Distance since Last Update' in args else args[
+                'distance_since_last_update'],
+            args['Number of blue Nodes'] if 'Number of blue Nodes' in args else args['num_blue_nodes'],
+            args['Average Distance'] if 'Average Distance' in args else args['average_distance'],
+            args['Average Hierarchical distance'] if 'Average Hierarchical distance' in args else args[
+                'average_hierarchical_distance'])
+    elif message_type == 'red_spots':
+        if 'nearest_values' in args:
+            nearest_values = args['nearest_values']
+        else:
+            nearest_values = []
+            for i in range(5):
+                nearest_values.append(args['#{0} Nearest'.format(i + 1)])
+
+        return calculate_red_spots_score(
+            args['Distance since Last Update'] if 'Distance since Last Update' in args else args[
+                'distance_since_last_update'],
+            args['Number of blue Nodes'] if 'Number of blue Nodes' in args else args['num_blue_nodes'],
+            args['Average Distance'] if 'Average Distance' in args else args['average_distance'],
+            args['average_hierarchical_distance'],
+            nearest_values)
 
 
-def calculate_multiplier(context_type, **args):
-    if context_type == 'distance_to_enemy':
-        return calculate_distance_to_enemy_multiplier(args['nearest_values'])
-    elif context_type == 'sos_operational_context':
-        return calculate_sos_operational_context_mutliplier(args['seconds_since_last_sos'])
+def get_scikit_model_combinations(method_type):
+    combinations = []
+    methods = regressors if method_type == MethodType.Regression else classifiers
+    for method_name in methods:
+        for scaling_type in ScalingType.all():
+            for enable_normalization in [False, True]:
+                for use_grid_search in [False, True]:
+                    cross_validations = list(range(2, 11)) if use_grid_search else [1]
+                    for cv in cross_validations:
+                        combinations.append((method_name, scaling_type, enable_normalization, use_grid_search, cv))
+    return combinations
 
 
 def calculate_blue_spots_score(distance_since_last_update, num_blue_nodes, average_distance,
@@ -158,37 +185,6 @@ def load_best_nn_model(training_data, sheet_name, features, method_type=MethodTy
         return None, -1, None, False
 
 
-def load_best_model(sheet_name, cols, cols_to_types, method_type=MethodType.Regression):
-    training_data = load_training_data(cols, cols_to_types, sheet_name)
-    sk_model, sk_score, sk_scaler, sk_normalizer = load_best_scikit_model(training_data, sheet_name, method_type)
-    features = cols[0: len(cols) - 1]
-    label = cols[-1]
-    nn_model, nn_score, nn_scaler, nn_normalizer = load_best_nn_model(training_data, sheet_name, features, method_type)
-    train_inputs = training_data[features]
-    train_outputs = training_data[label]
-    if nn_scaler is not None:
-        train_inputs = nn_scaler.fit_transform(train_inputs)
-    if nn_normalizer is not None:
-        train_inputs = nn_normalizer.fit_transform(train_inputs)
-    nn_model.fit(train_inputs, train_outputs)
-    if sk_score == -1 and nn_score > -1:
-        return nn_model, nn_scaler, nn_normalizer, 'nn'
-    elif nn_score == -1 and sk_score > -1:
-        return sk_model, sk_scaler, sk_normalizer, 'scikit'
-    else:
-        if method_type == MethodType.Regression:
-            if sk_score < nn_score:
-                return sk_model, sk_scaler, sk_normalizer, 'scikit'
-            else:
-                return nn_model, nn_scaler, nn_normalizer, 'nn'
-        else:
-            if sk_score > nn_score:
-                return sk_model, sk_scaler, sk_normalizer, 'scikit'
-            else:
-                return nn_model, nn_scaler, nn_normalizer, 'nn'
-
-
-def load_training_data(cols, cols_to_types, sheet_name):
+def load_training_data(cols, sheet_name):
     train_data_files_dir = join(dirname(realpath('__file__')), 'datasets', 'train', sheet_name)
-    training_data = load_from_directory(train_data_files_dir, cols, True, sheet_name, 0, cols_to_types)
-    return training_data
+    return load_from_directory(train_data_files_dir, cols, True, sheet_name)

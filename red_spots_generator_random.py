@@ -64,7 +64,7 @@ def generate_data(max_num_files, max_rows):
                 print('Duplicate Red Spots Row found for {0}'.format(new_data))
                 continue
 
-        df.to_csv(join(dirname(realpath('__file__')), 'datasets', data_type, 'red_spots',
+        df.to_csv(join(dirname(realpath('__file__')), 'datasets', 'red_spots',
                        'red_spots_{0}.csv'.format(datetime.now().strftime("%Y%m%d%H%M%S"))),
                   index=False)
 

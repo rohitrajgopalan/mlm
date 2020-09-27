@@ -1,10 +1,16 @@
 import json
 import numpy as np
-from supervised_learning.common import MethodType
+import pandas as pd
+from os.path import join, realpath, dirname, isfile, isdir
+
+from supervised_learning.common import MethodType, ScalingType
 
 from rabbit_mq_server import RabbitMQServer
 from mlm_utils import calculate_score, get_scikit_model_combinations, generate_scikit_model, load_training_data
 from sklearn.metrics import mean_squared_error
+
+result_cols = ['Regressor', 'Scaling Type', 'Enable Normalization', 'Use Default Params', 'Cross Validation',
+               'Mean Squared Error']
 
 
 class SLRabbitMQServer(RabbitMQServer):
@@ -20,7 +26,8 @@ class SLRabbitMQServer(RabbitMQServer):
                 'Penalty': 'penalty',
             },
             'actual': [],
-            'predicted': []
+            'predicted': [],
+            'results': pd.DataFrame(columns=result_cols)
         },
         'tactical_graphics': {
             'model': None,
@@ -33,7 +40,8 @@ class SLRabbitMQServer(RabbitMQServer):
                 'Score (Lazy)': 'score',
             },
             'actual': [],
-            'predicted': []
+            'predicted': [],
+            'results': pd.DataFrame(columns=result_cols)
         },
         'sos': {
             'model': None,
@@ -47,7 +55,8 @@ class SLRabbitMQServer(RabbitMQServer):
                 'Score': 'score'
             },
             'actual': [],
-            'predicted': []
+            'predicted': [],
+            'results': pd.DataFrame(columns=result_cols)
         },
         'blue_spots': {
             'model': None,
@@ -66,7 +75,8 @@ class SLRabbitMQServer(RabbitMQServer):
                 'Score': 'score'
             },
             'actual': [],
-            'predicted': []
+            'predicted': [],
+            'results': pd.DataFrame(columns=result_cols)
         },
         'red_spots': {
             'model': None,
@@ -86,7 +96,8 @@ class SLRabbitMQServer(RabbitMQServer):
                 'Score': 'score'
             },
             'actual': [],
-            'predicted': []
+            'predicted': [],
+            'results': pd.DataFrame(columns=result_cols)
         }
     }
 
@@ -141,15 +152,43 @@ class SLRabbitMQServer(RabbitMQServer):
             score = self.calculate_mean_squared_error(message_type)
             return json.dumps({'message_type': message_type, 'mean_squared_error': score})
         elif request_type == self.MODEL_CREATION:
-            try:
-                self.message_type_models[message_type]['current_combination_index'] += 1
+            score = self.calculate_mean_squared_error(message_type)
+            if self.message_type_models[message_type]['current_combination_index'] in range(0, len(
+                    self.combinations)) and score > -1:
                 combination = self.combinations[self.message_type_models[message_type]['current_combination_index']]
                 method_name, scaling_type, enable_normalization, use_grid_search, cv = combination
-                training_data = load_training_data(self.message_type_models[message_type]['cols'], message_type)
-                model = generate_scikit_model(MethodType.Regression, training_data, method_name, scaling_type,
-                                              enable_normalization, use_grid_search, cv)
-                self.message_type_models[message_type].update({'model': model, 'actual': [], 'predicted': []})
-                return json.dumps({'message_type': message_type, 'model_created': 1})
+                results = self.message_type_models[message_type]['results']
+                results = results.append({'Regressor': method_name,
+                                          'Scaling Type': scaling_type.name,
+                                          'Enable Normalization': 'Yes' if enable_normalization else 'No',
+                                          'Use Default Params': 'No' if use_grid_search else 'Yes',
+                                          'Cross Validation': cv,
+                                          'Mean Squared Error': score}, ignore_index=True)
+                self.message_type_models[message_type].update({'results': results})
+            try:
+                if 'use_best' in request:
+                    use_best = request['use_best'] == 1
+                else:
+                    use_best = False
+
+                if use_best:
+                    model = self.get_best_model(message_type)
+                    self.message_type_models[message_type].update({'model': model, 'actual': [], 'predicted': []})
+                    return json.dumps({'message_type': message_type, 'model_created': 1})
+                else:
+                    self.message_type_models[message_type]['current_combination_index'] += 1
+                    if self.message_type_models[message_type]['current_combination_index'] in range(0, len(
+                            self.combinations)):
+                        combination = self.combinations[
+                            self.message_type_models[message_type]['current_combination_index']]
+                        method_name, scaling_type, enable_normalization, use_grid_search, cv = combination
+                        training_data = load_training_data(self.message_type_models[message_type]['cols'], message_type)
+                        model = generate_scikit_model(MethodType.Regression, training_data, method_name, scaling_type,
+                                                      enable_normalization, use_grid_search, cv)
+                        self.message_type_models[message_type].update({'model': model, 'actual': [], 'predicted': []})
+                        return json.dumps({'message_type': message_type, 'model_created': 1})
+                    else:
+                        return json.dumps({'message_type': message_type, 'model_created': 0})
             except:
                 return json.dumps({'message_type': message_type, 'model_created': 0})
 
@@ -161,6 +200,27 @@ class SLRabbitMQServer(RabbitMQServer):
         else:
             score = -1
         return score
+
+    def get_best_model(self, message_type):
+        results = self.message_type_models[message_type]['results']
+        if len(results.index) == 0:
+            if isdir(join(dirname(realpath('__file__')), 'results')) and isfile(
+                    join(dirname(realpath('__file__')), 'results', '{0}.csv'.format(message_type))):
+                results = pd.read_csv(join(dirname(realpath('__file__')), 'results', '{0}.csv'.format(message_type)),
+                                      usecols=result_cols)
+                self.message_type_models[message_type].update({'results': results})
+        if len(results.index) == 0:
+            return None
+        else:
+            lowest_mse = np.min(results['Mean Squared Error'])
+            training_data = load_training_data(self.message_type_models[message_type]['cols'], message_type)
+            for index, row in results.iterrows():
+                if row['Mean Squared Error'] == lowest_mse:
+                    return generate_scikit_model(MethodType.Regression, training_data, row['Regressor'],
+                                                 ScalingType.get_type_by_name(row['Scaling Type']),
+                                                 row['Enable Normalization'] == 'Yes',
+                                                 row['Use Default Params'] == 'No', row['Cross Validation'])
+            return None
 
 
 # Before running the server, pull the RabbitMQ docker image:

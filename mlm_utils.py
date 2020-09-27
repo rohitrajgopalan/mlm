@@ -138,53 +138,6 @@ def generate_scikit_model(method_type, data, model_name, scaling_type=ScalingTyp
                                                   cv=cv)
 
 
-def load_best_scikit_model(training_data, sheet_name, method_type=MethodType.Regression):
-    try:
-        df = pd.read_csv(join(dirname(realpath('__file__')), 'results', '{0}.csv'.format(sheet_name)))
-        if method_type == MethodType.Regression:
-            lowest_mse = np.min(df['Mean Squared Error'])
-            for index, row in df.iterrows():
-                if float(row['Mean Squared Error']) == lowest_mse:
-                    return generate_scikit_model(method_type, training_data, row['Regressor'], row['Scaling Type'],
-                                                 row['Enable Normalization'] == 'Yes',
-                                                 row['Use Default Params'] == 'No'), lowest_mse, get_scaler_by_type(
-                        row['Scaling Type']), Normalizer() if row['Enable Normalization'] == 'Yes' else None
-        else:
-            highest_accuracy = np.max(df['Accuracy'])
-            for index, row in df.iterrows():
-                if float(row['Accuracy']) == highest_accuracy:
-                    return generate_scikit_model(method_type, training_data, row['Regressor'], row['Scaling Type'],
-                                                 row['Enable Normalization'] == 'Yes',
-                                                 row[
-                                                     'Use Default Params'] == 'No'), highest_accuracy, get_scaler_by_type(
-                        row['Scaling Type']), Normalizer() if row['Enable Normalization'] == 'Yes' else None
-    except:
-        return None, -1, None, False
-
-
-def load_best_nn_model(training_data, sheet_name, features, method_type=MethodType.Regression):
-    try:
-        df = pd.read_csv(join(dirname(realpath('__file__')), 'results', '{0}_nn.csv'.format(sheet_name)))
-        if method_type == MethodType.Regression:
-            lowest_mse = np.min(df['Mean Squared Error'])
-            for index, row in df.iterrows():
-                if float(row['Mean Squared Error']) == lowest_mse:
-                    return generate_neural_network(method_type, len(training_data.index), len(features),
-                                                   row['Alpha'], row['Output Activation'],
-                                                   ), lowest_mse, get_scaler_by_type(
-                        row['Scaling Type']), Normalizer() if row['Enable Normalization'] == 'Yes' else None
-        else:
-            highest_accuracy = np.max(df['Accuracy'])
-            for index, row in df.iterrows():
-                if float(row['Accuracy']) == highest_accuracy:
-                    return generate_neural_network(method_type, len(training_data.index), len(features),
-                                                   row['Alpha'], row['Output Activation'],
-                                                   ), highest_accuracy, get_scaler_by_type(
-                        row['Scaling Type']), Normalizer() if row['Enable Normalization'] == 'Yes' else None
-    except:
-        return None, -1, None, False
-
-
 def load_training_data(cols, sheet_name):
     train_data_files_dir = join(dirname(realpath('__file__')), 'datasets', 'train', sheet_name)
     return load_from_directory(train_data_files_dir, cols, True, sheet_name)

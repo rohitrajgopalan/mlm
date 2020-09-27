@@ -23,16 +23,13 @@ cols = ['Distance since Last Update', 'Number of blue Nodes', 'Average Distance'
 rand_generator = np.random.RandomState(0)
 
 
-def generate_data(data_type, max_num_files, max_rows):
+def generate_data(max_num_files, max_rows):
     tuple_list = []
     if not isdir(join(dirname(realpath('__file__')), 'datasets')):
         mkdir(join(dirname(realpath('__file__')), 'datasets'))
 
-    if not isdir(join(dirname(realpath('__file__')), 'datasets', data_type)):
-        mkdir(join(dirname(realpath('__file__')), 'datasets', data_type))
-
-    if not isdir(join(dirname(realpath('__file__')), 'datasets', data_type, 'red_spots')):
-        mkdir(join(dirname(realpath('__file__')), 'datasets', data_type, 'red_spots'))
+    if not isdir(join(dirname(realpath('__file__')), 'datasets', 'red_spots')):
+        mkdir(join(dirname(realpath('__file__')), 'datasets', 'red_spots'))
 
     for _ in range(max_num_files):
         df = pd.DataFrame(columns=cols)
@@ -72,5 +69,4 @@ def generate_data(data_type, max_num_files, max_rows):
                   index=False)
 
 
-generate_data('train', 2000, 1000)
-generate_data('test', 1, 100)
+generate_data(50, 1000)

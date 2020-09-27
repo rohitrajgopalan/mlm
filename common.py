@@ -6,13 +6,14 @@ from sklearn.metrics import mean_squared_error, accuracy_score
 from sklearn.preprocessing import Normalizer
 from supervised_learning.common import MethodType, load_from_directory, ScalingType, \
     get_scaler_by_type, regressors, classifiers, select_method
+from sklearn.model_selection import train_test_split
 
-from mlm_utils import generate_neural_network, generate_scikit_model, get_scikit_model_combinations
+from mlm_utils import generate_neural_network, generate_scikit_model, get_scikit_model_combinations, load_training_data
 
 sys.setrecursionlimit(10000)
 
 
-def test_on_nn(sheet_name, features, label, header_index, cols_to_types, method_type=MethodType.Regression):
+def test_on_nn(sheet_name, features, label, method_type=MethodType.Regression):
     df_results = pd.DataFrame(
         columns=['Alpha', 'Output Activation', 'Scaling Type', 'Enable Normalization',
                  'Mean Squared Error' if method_type == MethodType.Regression else 'Accuracy'])
@@ -63,29 +64,51 @@ def train_test_data(sheet_name, features, label):
     return training_data, train_inputs, train_outputs, test_inputs, test_outputs
 
 
+def train_data(sheet_name, features, label):
+    data_files_dir = join(dirname(realpath('__file__')), 'datasets', sheet_name)
+    cols = [feature for feature in features]
+    cols.append(label)
+    data = load_from_directory(data_files_dir, cols, True, sheet_name)
+    X = data[features]
+    y = data[label]
+    return X, y
+
+
 def test_on_methods(sheet_name, features, label, method_type):
     df_results = pd.DataFrame(
         columns=['Regressor' if method_type == MethodType.Regression else 'Classifier', 'Scaling Type',
-                 'Enable Normalization', 'Use Default Params', 'Cross Validation',
-                 'Mean Squared Error' if method_type == MethodType.Regression else 'Accuracy'])
-    training_data, _, _, test_inputs, test_outputs = train_test_data(sheet_name, features, label)
+                 'Enable Normalization', 'Use Default Params', 'Cross Validation', 'Mean Squared Error' if method_type == MethodType.Regression else 'Accuracy'])
+    X, y = train_data(sheet_name, features, label)
     combinations = get_scikit_model_combinations(method_type)
     for combination in combinations:
         method_name, scaling_type, enable_normalization, use_grid_search, cv = combination
+        scaler = get_scaler_by_type(scaling_type)
+        normalizer = Normalizer() if enable_normalization else None
         try:
-            model = generate_scikit_model(method_type, training_data, method_name, scaling_type,
-                                          enable_normalization, use_grid_search, cv)
-            actual_outputs = model.predict(test_inputs)
-            score = mean_squared_error(test_outputs,
-                                       actual_outputs) if method_type == MethodType.Regression else accuracy_score(
-                test_outputs, actual_outputs)
+            model = select_method(choosing_method=method_name, use_grid_search=use_grid_search, cv=cv, enable_normalization=enable_normalization, method_type=method_type)
+            test_sizes = [0.005, 0.01, 0.05, 0.1, 0.2]
+            scores = np.zeros(len(test_sizes))
+            for i, test_size in enumerate(test_sizes):
+                X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, shuffle=True)
+                if scaler is not None:
+                    X_train = scaler.fit_transform(X_train, y_train)
+                    X_test = scaler.transform(X_test)
+
+                if normalizer is not None:
+                    X_train = normalizer.fit_transform(X_train, y_train)
+                    X_test = normalizer.transform(X_test)
+
+                model.fit(X_train, y_train)
+                y_pred = model.predict(X_test)
+                score = mean_squared_error(y_pred, y_test) if method_type == MethodType.Regression else accuracy_score(y_pred, y_test)
+                scores[i] = score
             df_results = df_results.append(
                 {'Regressor' if method_type == MethodType.Regression else 'Classifier': method_name,
                  'Scaling Type': scaling_type.name,
                  'Enable Normalization': 'Yes' if enable_normalization else 'No',
                  'Use Default Params': 'No' if use_grid_search else 'Yes',
                  'Cross Validation': cv,
-                 'Mean Squared Error' if method_type == MethodType.Regression else 'Accuracy': score},
+                 'Mean Squared Error' if method_type == MethodType.Regression else 'Accuracy': np.mean(scores)},
                 ignore_index=True)
         except:
             continue

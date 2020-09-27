@@ -2,6 +2,7 @@ import sys
 from os.path import dirname, realpath, join
 
 import pandas as pd
+import numpy as np
 from sklearn.metrics import mean_squared_error, accuracy_score
 from sklearn.preprocessing import Normalizer
 from supervised_learning.common import MethodType, load_from_directory, ScalingType, \

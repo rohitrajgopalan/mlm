@@ -76,7 +76,7 @@ def test_on_methods(sheet_name, features, label, method_type):
     combinations = get_scikit_model_combinations(method_type)
     combination_to_scores = {}
     for combination in combinations:
-        combination_to_scores.update({combination: np.zeros(len(test_sizes))})
+        combination_to_scores.update({combination: []})
 
     methods = regressors if method_type == MethodType.Regression else classifiers
 
@@ -96,25 +96,29 @@ def test_on_methods(sheet_name, features, label, method_type):
                     for use_grid_search in [False, True]:
                         cross_validations = list(range(2, 11)) if use_grid_search else [1]
                         for cv in cross_validations:
-                            model = select_method(choosing_method=method_name, use_grid_search=use_grid_search, cv=cv,
-                                                  method_type=method_type)
-                            model.fit(X_train, y_train)
-                            y_pred = model.predict(X_test)
-                            score = mean_squared_error(y_pred,
-                                                       y_test) if method_type == MethodType.Regression else accuracy_score(
-                                y_pred, y_test)
-                            combination_to_scores[
-                                (method_name, scaling_type, enable_normalization, use_grid_search, cv)][i] = score
+                            try:
+                                model = select_method(choosing_method=method_name, use_grid_search=use_grid_search, cv=cv,
+                                                      method_type=method_type)
+                                model.fit(X_train, y_train)
+                                y_pred = model.predict(X_test)
+                                score = mean_squared_error(y_pred,
+                                                           y_test) if method_type == MethodType.Regression else accuracy_score(
+                                    y_pred, y_test)
+                                combination_to_scores[
+                                    (method_name, scaling_type, enable_normalization, use_grid_search, cv)].append(score)
+                            except:
+                                continue
 
     for combination in combinations:
         method_name, scaling_type, enable_normalization, use_grid_search, cv = combination
+        scores = combination_to_scores[combination]
         df_results = df_results.append(
             {'Regressor' if method_type == MethodType.Regression else 'Classifier': method_name,
              'Scaling Type': scaling_type.name,
              'Enable Normalization': 'Yes' if enable_normalization else 'No',
              'Use Default Params': 'No' if use_grid_search else 'Yes',
              'Cross Validation': cv,
-             'Mean Squared Error' if method_type == MethodType.Regression else 'Accuracy': np.mean(scores)},
+             'Mean Squared Error' if method_type == MethodType.Regression else 'Accuracy': np.mean(scores) if len(scores) > 1 else -1},
             ignore_index=True)
 
     # for combination in combinations:

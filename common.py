@@ -72,83 +72,40 @@ def test_on_methods(sheet_name, features, label, method_type):
         columns=['Regressor' if method_type == MethodType.Regression else 'Classifier', 'Scaling Type',
                  'Enable Normalization', 'Use Default Params', 'Cross Validation',
                  'Mean Squared Error' if method_type == MethodType.Regression else 'Accuracy'])
-    X, y = train_data(sheet_name, features, label)
+    X, y, = train_data(sheet_name, features, label)
     combinations = get_scikit_model_combinations(method_type)
-    combination_to_scores = {}
-    for combination in combinations:
-        combination_to_scores.update({combination: np.zeros(len(test_sizes))})
-
-    methods = regressors if method_type == MethodType.Regression else classifiers
-
-    for i, test_size in enumerate(test_sizes):
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, shuffle=True)
-        for scaling_type in ScalingType.all():
-            scaler = get_scaler_by_type(scaling_type)
-            if scaler is not None:
-                X_train = scaler.fit_transform(X_train, y_train)
-                X_test = scaler.transform(X_test)
-            for enable_normalization in [False, True]:
-                normalizer = Normalizer() if enable_normalization else Noned
-                if normalizer is not None:
-                    X_train = normalizer.fit_transform(X_train, y_train)
-                    X_test = normalizer.transform(X_test)
-                for method_name in methods:
-                    for use_grid_search in [False, True]:
-                        cross_validations = list(range(2, 11)) if use_grid_search else [1]
-                        for cv in cross_validations:
-                            model = select_method(choosing_method=method_name, use_grid_search=use_grid_search, cv=cv,
-                                                  method_type=method_type)
-                            model.fit(X_train, y_train)
-                            y_pred = model.predict(X_test)
-                            score = mean_squared_error(y_pred,
-                                                       y_test) if method_type == MethodType.Regression else accuracy_score(
-                                y_pred, y_test)
-                            combination_to_scores[
-                                (method_name, scaling_type, enable_normalization, use_grid_search, cv)][i] = score
-
     for combination in combinations:
         method_name, scaling_type, enable_normalization, use_grid_search, cv = combination
-        df_results = df_results.append(
-            {'Regressor' if method_type == MethodType.Regression else 'Classifier': method_name,
-             'Scaling Type': scaling_type.name,
-             'Enable Normalization': 'Yes' if enable_normalization else 'No',
-             'Use Default Params': 'No' if use_grid_search else 'Yes',
-             'Cross Validation': cv,
-             'Mean Squared Error' if method_type == MethodType.Regression else 'Accuracy': np.mean(scores)},
-            ignore_index=True)
+        scaler = get_scaler_by_type(scaling_type)
+        normalizer = Normalizer() if enable_normalization else None
+        try:
+            model = select_method(choosing_method=method_name, use_grid_search=use_grid_search, cv=cv,
+                                  enable_normalization=enable_normalization, method_type=method_type)
+            for i, test_size in enumerate(test_sizes):
+                X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, shuffle=True)
+                if scaler is not None:
+                    X_train = scaler.fit_transform(X_train, y_train)
+                    X_test = scaler.transform(X_test)
 
-    # for combination in combinations:
-    #     method_name, scaling_type, enable_normalization, use_grid_search, cv = combination
-    #     scaler = get_scaler_by_type(scaling_type)
-    #     normalizer = Normalizer() if enable_normalization else None
-    #     try:
-    #         model = select_method(choosing_method=method_name, use_grid_search=use_grid_search, cv=cv,
-    #                               enable_normalization=enable_normalization, method_type=method_type)
-    #         for i, test_size in enumerate(test_sizes):
-    #             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, shuffle=True)
-    #             if scaler is not None:
-    #                 X_train = scaler.fit_transform(X_train, y_train)
-    #                 X_test = scaler.transform(X_test)
-    #
-    #             if normalizer is not None:
-    #                 X_train = normalizer.fit_transform(X_train, y_train)
-    #                 X_test = normalizer.transform(X_test)
-    #
-    #             model.fit(X_train, y_train)
-    #             y_pred = model.predict(X_test)
-    #             score = mean_squared_error(y_pred, y_test) if method_type == MethodType.Regression else accuracy_score(
-    #                 y_pred, y_test)
-    #             scores[i] = score
-    #         df_results = df_results.append(
-    #             {'Regressor' if method_type == MethodType.Regression else 'Classifier': method_name,
-    #              'Scaling Type': scaling_type.name,
-    #              'Enable Normalization': 'Yes' if enable_normalization else 'No',
-    #              'Use Default Params': 'No' if use_grid_search else 'Yes',
-    #              'Cross Validation': cv,
-    #              'Mean Squared Error' if method_type == MethodType.Regression else 'Accuracy': np.mean(scores)},
-    #             ignore_index=True)
-    #     except:
-    #         continue
+                if normalizer is not None and method_name not in ['Linear Regression', 'Lasso', 'Ridge', 'Elastic Net']:
+                    X_train = normalizer.fit_transform(X_train, y_train)
+                    X_test = normalizer.transform(X_test)
+
+                model.fit(X_train, y_train)
+                y_pred = model.predict(X_test)
+                score = mean_squared_error(y_pred, y_test) if method_type == MethodType.Regression else accuracy_score(
+                    y_pred, y_test)
+                scores[i] = score
+            df_results = df_results.append(
+                {'Regressor' if method_type == MethodType.Regression else 'Classifier': method_name,
+                 'Scaling Type': scaling_type.name,
+                 'Enable Normalization': 'Yes' if enable_normalization else 'No',
+                 'Use Default Params': 'No' if use_grid_search else 'Yes',
+                 'Cross Validation': cv,
+                 'Mean Squared Error' if method_type == MethodType.Regression else 'Accuracy': np.mean(scores)},
+                ignore_index=True)
+        except:
+            continue
 
     df_results.to_csv(join(dirname(realpath('__file__')), 'results', '{0}.csv'.format(sheet_name)), index=False)
 

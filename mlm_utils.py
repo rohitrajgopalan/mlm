@@ -62,6 +62,17 @@ def get_scikit_model_combinations(method_type):
     return combinations
 
 
+def get_nn_model_combinations(method_type):
+    combinations = []
+    output_activations = ['linear', 'softplus'] if method_type == MethodType.Regression else ['sigmoid', 'softmax']
+    for alpha in range(2, 11):
+        for scaling_type in ScalingType.all():
+            for enable_normalization in [False, True]:
+                for output_activation in output_activations:
+                    combinations.append((alpha, scaling_type, enable_normalization, output_activation))
+    return combinations
+
+
 def calculate_blue_spots_score(distance_since_last_update, num_blue_nodes, average_distance,
                                average_hierarchical_distance, look_ahead_time_in_seconds=10, distance_error_base=0.1):
     error_penalty = distance_since_last_update * look_ahead_time_in_seconds * distance_error_base

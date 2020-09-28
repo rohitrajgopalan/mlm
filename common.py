@@ -88,7 +88,7 @@ def test_on_methods(sheet_name, features, label, method_type):
                 X_train = scaler.fit_transform(X_train, y_train)
                 X_test = scaler.transform(X_test)
             for enable_normalization in [False, True]:
-                normalizer = Normalizer() if enable_normalization else Noned
+                normalizer = Normalizer() if enable_normalization else None
                 if normalizer is not None:
                     X_train = normalizer.fit_transform(X_train, y_train)
                     X_test = normalizer.transform(X_test)

@@ -106,8 +106,12 @@ def test_on_methods(sheet_name, features, label, method_type):
                 ignore_index=True)
         except:
             continue
-
-    df_results.to_csv(join(dirname(realpath('__file__')), 'results', '{0}.csv'.format(sheet_name)), index=False)
+    
+    if method_type == MethodType.Regression:
+        df_filtered = df_results[df_results['Mean Squared Error'] <= 10.0]
+    else:
+        df_filtered = df_results[df_results['Accuracy'] >= 0.9]
+    df_filtered.to_csv(join(dirname(realpath('__file__')), 'results', '{0}.csv'.format(sheet_name)), index=False)
 
 
 def test_on_regressors(sheet_name, features, label):

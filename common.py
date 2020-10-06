@@ -81,20 +81,22 @@ def test_on_methods(sheet_name, features, label, method_type):
                  'Mean Absolute Error' if method_type == MethodType.Regression else 'Precision',
                  'Mean Squared Error' if method_type == MethodType.Regression else 'Accuracy'])
     X, y, = train_data(sheet_name, features, label)
-    if len(features) > 1:
-        poly = PolynomialFeatures()
-        X = poly.fit_transform(X, y)
     combinations = get_scikit_model_combinations(method_type)
     for combination in combinations:
         method_name, scaling_type, enable_normalization, use_grid_search, cv = combination
         scaler = get_scaler_by_type(scaling_type)
         normalizer = Normalizer() if enable_normalization else None
+        poly = PolynomialFeatures()
         try:
             model = select_method(choosing_method=method_name, use_grid_search=use_grid_search, cv=cv,
                                   enable_normalization=enable_normalization, method_type=method_type)
             scores = np.zeros((2, len(test_sizes)))
             for i, test_size in enumerate(test_sizes):
                 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, shuffle=True)
+                if len(features) > 1:
+                    X_train = poly.fit_transform(X_train, y_train)
+                    X_test = poly.transform(X_test)
+
                 if scaler is not None:
                     X_train = scaler.fit_transform(X_train, y_train)
                     X_test = scaler.transform(X_test)

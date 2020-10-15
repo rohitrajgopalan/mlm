@@ -200,6 +200,7 @@ def make_pipeline(combination, method_type):
     pipeline_list.append(('method', method))
     return Pipeline(pipeline_list)
 
+
 def train_data(sheet_name, features, label, split=True):
     data_files_dir = join(dirname(realpath('__file__')), 'datasets', sheet_name)
     cols = [feature for feature in features]

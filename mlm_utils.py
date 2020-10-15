@@ -1,9 +1,10 @@
 import math
 from os.path import dirname, realpath, join
 import numpy as np
-from sklearn.preprocessing import Normalizer
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import Normalizer, PolynomialFeatures
 from supervised_learning.common import load_from_directory, MethodType, ScalingType, get_scaler_by_type, regressors, \
-    classifiers
+    classifiers, select_method
 import pandas as pd
 from supervised_learning.supervised_learning_helper import SupervisedLearningHelper
 
@@ -59,6 +60,24 @@ def get_scikit_model_combinations(method_type):
                     cross_validations = list(range(2, 11)) if use_grid_search else [1]
                     for cv in cross_validations:
                         combinations.append((method_name, scaling_type, enable_normalization, use_grid_search, cv))
+    return combinations
+
+
+def get_scikit_model_combinations_with_polynomials(method_type, num_features):
+    combinations = []
+    methods = regressors if method_type == MethodType.Regression else classifiers
+    degrees = [1] if num_features == 1 else list(range(2, 6))
+    interaction_only_flags = [False] if num_features == 1 else [False, True]
+    include_bias_flags = [True] if num_features == 1 else [False, True]
+    for method_name in methods:
+        for degree in degrees:
+            for interaction_only in interaction_only_flags:
+                for include_bias in include_bias_flags:
+                    for scaling_type in ScalingType.all():
+                        for enable_normalization in [False, True]:
+                            for use_grid_search in [False, True]:
+                                combinations.append((method_name, degree, interaction_only, include_bias, scaling_type,
+                                                     enable_normalization, use_grid_search))
     return combinations
 
 
@@ -152,3 +171,43 @@ def generate_scikit_model(method_type, data, model_name, scaling_type=ScalingTyp
 def load_training_data(cols, sheet_name):
     train_data_files_dir = join(dirname(realpath('__file__')), 'datasets', 'train', sheet_name)
     return load_from_directory(train_data_files_dir, cols, True, sheet_name)
+
+
+def make_pipeline(combination, method_type):
+    pipeline_list = []
+    method_name, degree, interaction_only, include_bias, scaling_type, enable_normalization, use_grid_search = combination
+    print(
+        'Method: {0}\nPolynomial:\nDegree:{1}\nInteraction Only: {2}\nInclude Bias: {3}\nScaling Type: {4}\nEnable Normalization: {5}\nUsing Grid Search: {6}\n'.format(
+            method_name, degree, 'Yes' if interaction_only else 'No', 'Yes' if include_bias else 'No',
+            scaling_type.name,
+            'Yes' if enable_normalization else 'No', 'Yes' if use_grid_search else 'No'))
+    if degree > 1:
+        pipeline_list.append(
+            ('poly', PolynomialFeatures(degree=degree, interaction_only=interaction_only, include_bias=include_bias)))
+    scaler = get_scaler_by_type(scaling_type)
+    if scaler is not None:
+        pipeline_list.append(('scaler', scaler))
+    normalizer = Normalizer() if enable_normalization else None
+    normalizer_added = False
+    if normalizer is not None and not use_grid_search:
+        normalizer_added = True
+        pipeline_list.append(('normalizer', normalizer))
+    if not normalizer_added and normalizer is None and (
+            use_grid_search and method_name not in ['Linear Regression', 'Lasso', 'Ridge', 'Elastic Net']):
+        pipeline_list.append(('normalizer', normalizer))
+    method = select_method(choosing_method=method_name, use_grid_search=use_grid_search, cv=10,
+                           enable_normalization=enable_normalization, method_type=method_type)
+    pipeline_list.append(('method', method))
+    return Pipeline(pipeline_list)
+
+def train_data(sheet_name, features, label, split=True):
+    data_files_dir = join(dirname(realpath('__file__')), 'datasets', sheet_name)
+    cols = [feature for feature in features]
+    cols.append(label)
+    data = load_from_directory(data_files_dir, cols, True, sheet_name)
+    if split:
+        X = data[features]
+        y = data[label]
+        return X, y
+    else:
+        return data

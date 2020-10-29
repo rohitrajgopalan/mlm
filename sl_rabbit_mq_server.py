@@ -89,9 +89,9 @@ class SLRabbitMQServer(RabbitMQServer):
         }
     }
 
-    MODEL_CREATION = 0
-    COST = 1
-    SCORE = 2
+    MODEL_CREATION = 'SET_MODEL'
+    COST = 'COST'
+    SCORE = 'SCORE'
 
     def __init__(self):
         for message_type in self.message_type_models:

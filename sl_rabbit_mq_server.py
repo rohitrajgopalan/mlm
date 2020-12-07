@@ -1,7 +1,9 @@
 import json
 import numpy as np
 import pandas as pd
+import atexit
 from os.path import join, realpath, dirname, isfile, isdir
+from os import mkdir
 
 from scikit_model import ScikitModel
 from rabbit_mq_server import RabbitMQServer
@@ -13,11 +15,12 @@ result_cols = ['regressor', 'polynomial_degree', 'scaling_type', 'enable_normali
 
 class SLRabbitMQServer(RabbitMQServer):
     message_types = ['text_messages', 'tactical_graphics', 'sos', 'blue_spots', 'red_spots']
+    context_types = ['sos_operational_context', 'distance_to_enemy']
 
     context_models = {
         'sos_operational_context': {
             'model': None,
-            'current_combination': (),
+            'current_combination': -1,
             'features': ['Seconds Since Last Sent SOS'],
             'label': 'Multiplier',
             'cols_to_json': {
@@ -28,7 +31,7 @@ class SLRabbitMQServer(RabbitMQServer):
         },
         'distance_to_enemy': {
             'model': None,
-            'current_combination': (),
+            'current_combination': -1,
             'features': ['#1 Nearest', '#2 Nearest', '#3 Nearest', '#4 Nearest',
                          '#5 Nearest'],
             'label': 'Mutliplier',
@@ -39,7 +42,7 @@ class SLRabbitMQServer(RabbitMQServer):
     message_type_models = {
         'text_messages': {
             'model': None,
-            'current_combination': (),
+            'current_combination': -1,
             'features': ['Age of Message'],
             'label': 'Penalty',
             'cols_to_json': {
@@ -50,7 +53,7 @@ class SLRabbitMQServer(RabbitMQServer):
         },
         'tactical_graphics': {
             'model': None,
-            'current_combination': (),
+            'current_combination': -1,
             'features': ['Age of Message'],
             'label': 'Score (Lazy)',
             'cols_to_json': {
@@ -61,7 +64,7 @@ class SLRabbitMQServer(RabbitMQServer):
         },
         'sos': {
             'model': None,
-            'current_combination': (),
+            'current_combination': -1,
             'features': ['Age of Message', 'Number of blue Nodes'],
             'label': 'Score',
             'cols_to_json': {
@@ -73,7 +76,7 @@ class SLRabbitMQServer(RabbitMQServer):
         },
         'blue_spots': {
             'model': None,
-            'current_combination': (),
+            'current_combination': -1,
             'features': ['Distance since Last Update', 'Number of blue Nodes', 'Average Distance',
                          'Average Hierarchical distance', 'Is Affected'],
             'label': 'Score',
@@ -90,7 +93,7 @@ class SLRabbitMQServer(RabbitMQServer):
         },
         'red_spots': {
             'model': None,
-            'current_combination': (),
+            'current_combination': -1,
             'features': ['Distance since Last Update', 'Number of blue Nodes', 'Average Distance',
                          'Average Hierarchical distance', 'Is Affected'],
             'label': 'Score',
@@ -110,7 +113,47 @@ class SLRabbitMQServer(RabbitMQServer):
     COST = 'UPDATE_MODEL'
 
     def __init__(self):
+        for message_type in self.message_types:
+            combinations = get_scikit_model_combinations_with_polynomials(
+                len(self.message_type_models[message_type]['features']))
+            self.message_type_models[message_type].update({
+                'combinations': combinations})
+            for combination in combinations:
+                method_name, degree, scaling_type, enable_normalization, use_grid_search = combination
+                self.message_type_models[message_type]['results'] = self.message_type_models[message_type][
+                    'results'].append({'regressor': method_name,
+                                       'polynomial_degree': degree,
+                                       'scaling_type': scaling_type.name,
+                                       'enable_normalization': 'Yes' if enable_normalization else 'No',
+                                       'use_grid_search': 'Yes' if use_grid_search else 'No',
+                                       'mae': 0,
+                                       'mse': 0}, ignore_index=True)
+        for context_type in self.context_types:
+            combinations = get_scikit_model_combinations_with_polynomials(
+                len(self.context_models[context_type]['features']))
+            self.context_models[context_type].update({'combinations': combinations})
+            for combination in combinations:
+                method_name, degree, scaling_type, enable_normalization, use_grid_search = combination
+                self.context_models[context_type]['results'] = self.context_models[context_type]['results'].append(
+                    {'regressor': method_name,
+                     'polynomial_degree': degree,
+                     'scaling_type': scaling_type.name,
+                     'enable_normalization': 'Yes' if enable_normalization else 'No',
+                     'use_grid_search': 'Yes' if use_grid_search else 'No',
+                     'mae': 0,
+                     'mse': 0}, ignore_index=True)
         super().__init__(queue_name='sl_request_queue', durable=True)
+
+    def write_results(self):
+        results_dir = join(dirname(realpath('__file__')), 'results')
+        if not isdir(results_dir):
+            mkdir(results_dir)
+
+        for message_type in self.message_types:
+            self.message_type_models[message_type]['results'].to_csv(join(results_dir, '{0}.csv'.format(message_type)))
+
+        for context_type in self.context_types:
+            self.context_models[context_type]['results'].to_csv(join(results_dir, '{0}.csv'.format(context_type)))
 
     def _get_reply(self, request):
         request_body = request['requestBody']
@@ -166,7 +209,8 @@ class SLRabbitMQServer(RabbitMQServer):
                         sos_multiplier = self.context_models['sos_operational_context']['model'].predict_then_fit(
                             feature_value_dict)
                     except:
-                        sos_multiplier = calculate_sos_operational_context_mutliplier(request_body['secondsSinceLastSOS'])
+                        sos_multiplier = calculate_sos_operational_context_mutliplier(
+                            request_body['secondsSinceLastSOS'])
 
                 return predicted * sos_multiplier * distance_to_enemy_multiplier
 
@@ -183,7 +227,6 @@ class SLRabbitMQServer(RabbitMQServer):
             return 1 if all_context_models_created.all() and all_message_models_created.all() else 0
 
     def create_model_for_message_type(self, message_type, request_body):
-        results = self.message_type_models[message_type]['results']
         if self.message_type_models[message_type]['model'] is not None:
             mse = self.message_type_models[message_type]['model'].calculate_score_with_metric('mse')
             mae = self.message_type_models[message_type]['model'].calculate_score_with_metric('mae')
@@ -191,36 +234,32 @@ class SLRabbitMQServer(RabbitMQServer):
             mse = -1
             mae = -1
 
-        if self.message_type_models[message_type]['current_combination'] != ():
-            method_name, degree, scaling_type, enable_normalization, use_grid_search = self.message_type_models[message_type]['current_combination']
+        combinations = self.message_type_models[message_type]['combinations']
+
+        if 0 <= self.message_type_models[message_type]['current_combination'] < 48:
             if mse > -1 and mae > -1:
-                results = results.append({'regressor': method_name,
-                                          'polynomial_degree': degree,
-                                          'scaling_type': scaling_type.name,
-                                          'enable_normalization': 'Yes' if enable_normalization else 'No',
-                                          'use_grid_search': 'Yes' if use_grid_search else 'No',
-                                          'mae': mae,
-                                          'mse': mse}, ignore_index=True)
-                self.message_type_models[message_type].update({'results': results})
+                self.message_type_models[message_type]['results'].iat[self.message_type_models[message_type]['current_combination'], 5] = mae
+                self.message_type_models[message_type]['results'].iat[self.message_type_models[message_type]['current_combination'], 6] = mse
         try:
             if request_body['useBest'] == 1:
                 model = self.get_best_model_for_message_type(message_type, request_body['metricType'])
                 self.message_type_models[message_type].update({'model': model, 'actual': [], 'predicted': []})
                 return 1
             else:
-                combination = (request_body['regressionType'], len(self.message_type_models[message_type]['features']), request_body['scalerType'], request_body['enableNormalization'] == 1,
-                               request_body['useGridSearch'] == 1)
-                self.message_type_models[message_type]['current_combination'] = combination
-                model = ScikitModel(combination, message_type, self.message_type_models[message_type]['features'],
-                                    self.message_type_models[message_type]['label'])
-                self.message_type_models[message_type].update({'model': model})
-                return 1
+                if 0 <= request_body['combinationID'] < 48:
+                    self.message_type_models[message_type]['current_combination'] = request_body['combinationID']
+                    combination = combinations[self.message_type_models[message_type]['current_combination']]
+                    model = ScikitModel(combination, message_type, self.message_type_models[message_type]['features'],
+                                        self.message_type_models[message_type]['label'])
+                    self.message_type_models[message_type].update({'model': model})
+                    return 1
+                else:
+                    return 0
 
         except:
             return 0
 
     def create_model_for_context_type(self, context_type, request_body):
-        results = self.context_models[context_type]['results']
         if self.context_models[context_type]['model'] is not None:
             mse = self.context_models[context_type]['model'].calculate_score_with_metric('mse')
             mae = self.context_models[context_type]['model'].calculate_score_with_metric('mae')
@@ -228,30 +267,27 @@ class SLRabbitMQServer(RabbitMQServer):
             mse = -1
             mae = -1
 
-        if self.context_models[context_type]['current_combination'] != ():
-            method_name, degree, scaling_type, enable_normalization, use_grid_search = self.context_models[context_type]['current_combination']
+        combinations = self.context_models[context_type]['combinations']
+
+        if 0 <= self.context_models[context_type]['current_combination'] < 48:
             if mse > -1 and mae > -1:
-                results = results.append({'regressor': method_name,
-                                          'polynomial_degree': degree,
-                                          'scaling_type': scaling_type.name,
-                                          'enable_normalization': 'Yes' if enable_normalization else 'No',
-                                          'use_grid_search': 'Yes' if use_grid_search else 'No',
-                                          'mae': mae,
-                                          'mse': mse}, ignore_index=True)
-                self.context_models[context_type].update({'results': results})
+                self.context_models[context_type]['results'].iat[self.context_models[context_type]['current_combination'], 5] = mae
+                self.context_models[context_type]['results'].iat[self.context_models[context_type]['current_combination'], 6] = mae
         try:
             if request_body['useBest'] == 1:
                 model = self.get_best_model_for_message_type(message_type, request_body['metricType'])
                 self.context_models[context_type].update({'model': model, 'actual': [], 'predicted': []})
                 return 1
             else:
-                combination = (request_body['regressionType'], len(self.context_models[context_type]['features']), request_body['scalerType'], request_body['enableNormalization'] == 1,
-                               request_body['useGridSearch'] == 1)
-                self.context_models[context_type]['current_combination'] = combination
-                model = ScikitModel(combination, context_type, self.context_models[context_type]['features'],
-                                    self.context_models[context_type]['label'])
-                self.message_type_models[message_type].update({'model': model})
-                return 1
+                if 0 <= request_body['combinationID'] <= 48:
+                    self.context_models[context_type]['current_combination'] = request_body['combinationID']
+                    combination = combinations[self.context_models[context_type]['current_combination']]
+                    model = ScikitModel(combination, context_type, self.context_models[context_type]['features'],
+                                        self.context_models[context_type]['label'])
+                    self.message_type_models[message_type].update({'model': model})
+                    return 1
+                else:
+                    return 0
         except:
             return 0
 
@@ -283,3 +319,10 @@ class SLRabbitMQServer(RabbitMQServer):
 if __name__ == '__main__':
     server = SLRabbitMQServer()
     server.start()
+
+
+    def on_exit():
+        server.write_results()
+
+
+    atexit.register(on_exit)

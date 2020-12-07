@@ -12,11 +12,11 @@ from abc import abstractmethod
 
 class RabbitMQServer(ABC):
 
-    def __init__(self, queue_name):
+    def __init__(self, queue_name, durable=False):
         connection = pika.BlockingConnection(
             pika.ConnectionParameters(host='localhost'))
         channel = connection.channel()
-        channel.queue_declare(queue=queue_name)
+        channel.queue_declare(queue=queue_name, durable=durable)
         channel.basic_qos(prefetch_count=1)
         channel.basic_consume(
             queue=queue_name,

@@ -3,7 +3,7 @@ from datetime import datetime
 from os import mkdir
 from os.path import dirname, realpath, join, isdir
 import numpy as np
-from mlm_utils import calculate_score
+from mlm_utils import calculate_raw_score
 
 text_message_cols = ['Age of Message', 'Penalty']
 tactical_graphics_cols = ['Age of Message', 'Score (Lazy)']
@@ -33,12 +33,12 @@ def generate_data():
         new_text_message = {'Age of Message': age_of_message}
         new_tactical_graphic = {'Age of Message': age_of_message}
         new_sos = {'Age of Message': age_of_message}
-        text_message_score = calculate_score('text_messages', new_text_message)
+        text_message_score = calculate_raw_score('text_messages', new_text_message)
         new_text_message.update({'Penalty': text_message_score})
         if text_message_score > 0:
             text_message_data = text_message_data.append(new_text_message, ignore_index=True)
 
-        tactical_graphics_score = calculate_score('tactical_graphics', new_tactical_graphic)
+        tactical_graphics_score = calculate_raw_score('tactical_graphics', new_tactical_graphic)
         new_tactical_graphic.update({'Score (Lazy)': tactical_graphics_score})
         if tactical_graphics_score > 0:
             tactical_graphics_data = tactical_graphics_data.append(new_tactical_graphic, ignore_index=True)
@@ -47,7 +47,7 @@ def generate_data():
             continue
         for num_blue_nodes in np.arange(0, 121, 1):
             new_sos.update({'Number of blue Nodes': num_blue_nodes})
-            sos_score = calculate_score('sos', new_sos)
+            sos_score = calculate_raw_score('sos', new_sos)
             new_sos.update({'Score': sos_score})
             sos_data = sos_data.append(new_sos, ignore_index=True)
 

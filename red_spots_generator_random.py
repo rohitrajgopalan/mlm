@@ -18,7 +18,7 @@ max_average_hierarchical_distance = 4
 max_nearest_values = 1000
 
 cols = ['Distance since Last Update', 'Number of blue Nodes', 'Average Distance', 'Average Hierarchical distance',
-        '#1 Nearest', '#2 Nearest', '#3 Nearest', '#4 Nearest', '#5 Nearest', 'Score']
+        'Is Affected', 'Score']
 
 rand_generator = np.random.RandomState(0)
 
@@ -35,7 +35,6 @@ def generate_data(max_num_files, max_rows):
         df = pd.DataFrame(columns=cols)
         num_rows = 0
         while num_rows < max_rows:
-            nearest_values = rand_generator.randint(0, max_nearest_values + 1, (5,))
             distance_since_last_update = rand_generator.randint(min_distance_since_last_update,
                                                                 max_distance_since_last_update + 1)
             new_data = {'Distance since Last Update': distance_since_last_update}
@@ -43,16 +42,15 @@ def generate_data(max_num_files, max_rows):
             new_data.update({'Number of blue Nodes': num_blue_nodes})
             average_distance = rand_generator.randint(min_average_distance, max_average_distance + 1)
             new_data.update({'Average Distance': average_distance})
+            is_affected = rand_generator.randint(0, 2)
+            new_data.update({'Is Affected': is_affected})
             average_hierarchical_distance = rand_generator.randint(min_average_hierarchical_distance,
                                                                    max_average_hierarchical_distance + 1)
             score = calculate_red_spots_score(distance_since_last_update, num_blue_nodes, average_distance,
-                                              average_hierarchical_distance, nearest_values)
+                                              average_hierarchical_distance, is_affected)
             new_data.update({'Average Hierarchical distance': average_hierarchical_distance, 'Score': score})
-            for i in range(5):
-                new_data.update({'#{0} Nearest'.format(i + 1): nearest_values[i]})
             new_data_tuple = (
-                distance_since_last_update, num_blue_nodes, average_distance, average_hierarchical_distance,
-                nearest_values[0], nearest_values[1], nearest_values[2], nearest_values[3], nearest_values[4], score)
+                distance_since_last_update, num_blue_nodes, average_distance, average_hierarchical_distance, is_affected, score)
             if new_data_tuple in tuple_list:
                 print('Duplicate Red Spots Row found for {0}'.format(new_data))
                 continue
@@ -69,4 +67,4 @@ def generate_data(max_num_files, max_rows):
                   index=False)
 
 
-generate_data(50, 1000)
+generate_data(1000, 1000)

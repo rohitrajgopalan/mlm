@@ -17,7 +17,7 @@ min_average_hierarchical_distance = 0
 max_average_hierarchical_distance = 10
 
 cols = ['Distance since Last Update', 'Number of blue Nodes', 'Average Distance', 'Average Hierarchical distance',
-        'Score']
+        'Is Affected', 'Score']
 
 rand_generator = np.random.RandomState(0)
 
@@ -42,10 +42,13 @@ def generate_data(max_num_files, max_rows):
             new_data.update({'Average Distance': average_distance})
             average_hierarchical_distance = rand_generator.randint(min_average_hierarchical_distance,
                                                                    max_average_hierarchical_distance + 1)
+            is_affected = rand_generator.randint(0, 2)
+            new_data.update({'Is Affected': is_affected})
             score = calculate_blue_spots_score(distance_since_last_update, num_blue_nodes, average_distance,
-                                               average_hierarchical_distance)
+                                               average_hierarchical_distance, is_affected)
             new_data.update({'Average Hierarchical distance': average_hierarchical_distance, 'Score': score})
-            new_data_tuple = (distance_since_last_update, num_blue_nodes, average_distance, average_hierarchical_distance, score)
+            new_data_tuple = (
+                distance_since_last_update, num_blue_nodes, average_distance, average_hierarchical_distance, is_affected, score)
             if new_data_tuple in tuple_list:
                 print('Duplicate Blue Spots Row found for {0}'.format(new_data))
                 continue
@@ -61,4 +64,4 @@ def generate_data(max_num_files, max_rows):
                   index=False)
 
 
-generate_data(50, 1000)
+generate_data(1000, 1000)

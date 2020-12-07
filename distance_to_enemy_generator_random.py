@@ -10,16 +10,13 @@ rand_generator = np.random.RandomState(0)
 cols = ['#1 Nearest', '#2 Nearest', '#3 Nearest', '#4 Nearest', '#5 Nearest', 'Multiplier']
 
 
-def generate_data(data_type, max_num_files, max_rows):
+def generate_data(max_num_files, max_rows):
     tuple_list = []
     if not isdir(join(dirname(realpath('__file__')), 'datasets')):
         mkdir(join(dirname(realpath('__file__')), 'datasets'))
 
-    if not isdir(join(dirname(realpath('__file__')), 'datasets', data_type)):
-        mkdir(join(dirname(realpath('__file__')), 'datasets', data_type))
-
-    if not isdir(join(dirname(realpath('__file__')), 'datasets', data_type, 'distance_to_enemy')):
-        mkdir(join(dirname(realpath('__file__')), 'datasets', data_type, 'distance_to_enemy'))
+    if not isdir(join(dirname(realpath('__file__')), 'datasets', 'distance_to_enemy')):
+        mkdir(join(dirname(realpath('__file__')), 'datasets', 'distance_to_enemy'))
 
     for _ in range(max_num_files):
         df = pd.DataFrame(columns=cols)
@@ -41,10 +38,9 @@ def generate_data(data_type, max_num_files, max_rows):
             except ValueError:
                 print('Duplicate Distance to Enemy Row found for {0}'.format(new_data))
                 continue
-        df.to_csv(join(dirname(realpath('__file__')), 'datasets', data_type, 'distance_to_enemy',
+        df.to_csv(join(dirname(realpath('__file__')), 'datasets', 'distance_to_enemy',
                        'distance_to_enemy_{0}.csv'.format(datetime.now().strftime("%Y%m%d%H%M%S"))),
                   index=False)
 
 
-generate_data('train', 10, 1000)
-generate_data('test', 1, 100)
+generate_data(1000, 1000)

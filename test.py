@@ -2,40 +2,31 @@ import math
 from os import mkdir
 from os.path import isdir, join, dirname, realpath
 
-import numpy
-import pandas
+import numpy as np
+import pandas as pd
 from sklearn.model_selection import cross_validate
-from supervised_learning.common import MethodType
-
 from mlm_utils import train_data, get_scikit_model_combinations_with_polynomials, make_pipeline
 
-test_sizes = [0.005, 0.01, 0.05, 0.1, 0.2]
 
-
-def test_on_methods(sheet_name, features, label, method_type):
-    df_results = pd.DataFrame(columns=['regressor' if method_type == MethodType.Regression else 'classifier',
-                                       'polynomial_degree', 'polynomial_interaction_only', 'polynomial_include_bias',
+def test_on_regressors(sheet_name, features, label):
+    df_results = pd.DataFrame(columns=['regressor',
                                        'scaling_type', 'enable_normalization', 'use_grid_search',
-                                       'train_mae' if method_type == MethodType.Regression else 'train_precision',
-                                       'train_mse' if method_type == MethodType.Regression else 'train_accuracy',
-                                       'test_mae' if method_type == MethodType.Regression else 'test_precision',
-                                       'test_mse' if method_type == MethodType.Regression else 'test_accuracy'])
+                                       'train_mae',
+                                       'train_mse',
+                                       'test_mae',
+                                       'test_mse'])
     X, y, = train_data(sheet_name, features, label)
-    combinations = get_scikit_model_combinations_with_polynomials(method_type, len(features))
+    # combinations = get_scikit_model_combinations_with_polynomials(len(features))
+    combinations = get_scikit_model_combinations_with_polynomials()
     for combination in combinations:
-        method_name, degree, interaction_only, include_bias, scaling_type, enable_normalization, use_grid_search = combination
-        print('Developing a pipeline for {0}:'.format(sheet_name))
-        pipeline = make_pipeline(combination, method_type)
+        method_name, degree, scaling_type, enable_normalization, use_grid_search = combination
+        pipeline = make_pipeline(combination)
         scores = cross_validate(pipeline, X, y, cv=10,
                                 scoring=('neg_mean_squared_error',
-                                         'neg_mean_absolute_error') if method_type == MethodType.Regression
-                                else ('accuracy', 'precision_macro'),
+                                         'neg_mean_absolute_error'),
                                 return_train_score=True)
         df_results = df_results.append({
-            'regressor' if method_type == MethodType.Regression else 'classifier': method_name,
-            'polynomial_degree': degree,
-            'polynomial_interaction_only': 'Yes' if interaction_only else 'No',
-            'polynomial_include_bias': 'Yes' if include_bias else 'No',
+            'regressor': method_name,
             'scaling_type': scaling_type.name,
             'enable_normalization': 'Yes' if enable_normalization else 'No',
             'use_grid_search': 'Yes' if use_grid_search else 'No',
@@ -48,33 +39,32 @@ def test_on_methods(sheet_name, features, label, method_type):
                       index=False)
 
 
-def test_on_regressors(sheet_name, features, label):
-    test_on_methods(sheet_name, features, label, MethodType.Regression)
-
-
-def test_on_classifiers(sheet_name, features, label):
-    test_on_methods(sheet_name, features, label, MethodType.Classification)
-
-
 models = [
-    {'sheet_name': 'text_messages',
-     'features': ['Age of Message'],
-     'label': 'Penalty'},
-    {'sheet_name': 'tactical_graphics',
-     'features': ['Age of Message'],
-     'label': 'Score (Lazy)'},
-    {'sheet_name': 'sos',
-     'features': ['Age of Message', 'Number of blue Nodes'],
-     'label': 'Score'},
+    # {'sheet_name': 'text_messages',
+    #  'features': ['Age of Message'],
+    #  'label': 'Penalty'},
+    # {'sheet_name': 'tactical_graphics',
+    #  'features': ['Age of Message'],
+    #  'label': 'Score (Lazy)'},
+    # {'sheet_name': 'sos_operational_context',
+    #  'features': ['Seconds Since Last Sent SOS'],
+    #  'label': 'Multiplier'
+    #  },
+    # {'sheet_name': 'sos',
+    #  'features': ['Age of Message', 'Number of blue Nodes'],
+    #  'label': 'Score'},
     {'sheet_name': 'blue_spots',
      'features': ['Distance since Last Update', 'Number of blue Nodes', 'Average Distance',
                   'Average Hierarchical distance'],
      'label': 'Score'},
-    {'sheet_name': 'red_spots',
-     'features': ['Distance since Last Update', 'Number of blue Nodes', 'Average Distance',
-                  'Average Hierarchical distance', '#1 Nearest', '#2 Nearest', '#3 Nearest', '#4 Nearest',
-                  '#5 Nearest'],
-     'label': 'Score'}
+    # {'sheet_name':'distance_to_enemy',
+    #  'features': ['#1 Nearest', '#2 Nearest', '#3 Nearest', '#4 Nearest', '#5 Nearest'],
+    #  'label': 'Multiplier',
+    # },
+    # {'sheet_name': 'red_spots',
+    #  'features': ['Distance since Last Update', 'Number of blue Nodes', 'Average Distance',
+    #               'Average Hierarchical distance'],
+    #  'label': 'Score'}
 ]
 
 if not isdir(join(dirname(realpath('__file__')), 'results')):

@@ -5,7 +5,7 @@ from os import mkdir
 from os.path import dirname, realpath, join, isdir
 from mlm_utils import calculate_distance_to_enemy_multiplier, calculate_distance_to_enemy_aggregator
 
-max_nearest_values = 1000
+max_nearest_values = 2000
 rand_generator = np.random.RandomState(0)
 cols = ['#1 Nearest', '#2 Nearest', '#3 Nearest', '#4 Nearest', '#5 Nearest', 'Multiplier']
 

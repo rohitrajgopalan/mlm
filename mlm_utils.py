@@ -8,7 +8,7 @@ import pandas as pd
 from sklearn.ensemble import RandomForestRegressor, ExtraTreesRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import GridSearchCV
-from sklearn.preprocessing import RobustScaler, Normalizer, StandardScaler
+from sklearn.preprocessing import RobustScaler, Normalizer, StandardScaler, MinMaxScaler, MaxAbsScaler
 from sklearn.tree import DecisionTreeRegressor
 import enum
 
@@ -95,18 +95,17 @@ def get_testable_parameters(method_name):
 
 class ScalingType(enum.Enum):
     STANDARD = 1,
-    ROBUST = 2,
-    NONE = 3,
+    MAX_ABS = 2,
+    MIN_MAX = 3,
+    ROBUST = 4,
+    NONE = 5,
 
     @staticmethod
     def all():
-        return [ScalingType.NONE, ScalingType.STANDARD, ScalingType.ROBUST]
+        return [ScalingType.NONE, ScalingType.STANDARD, ScalingType.MAX_ABS, ScalingType.MIN_MAX, ScalingType.ROBUST]
 
     @staticmethod
     def get_type_by_name(name):
-        if name is None:
-            return ScalingType.NONE
-
         for scaling_type in ScalingType.all():
             if scaling_type.name.lower() == name.lower():
                 return scaling_type
@@ -117,6 +116,10 @@ def get_scaler_by_type(scaling_type):
         return StandardScaler()
     elif scaling_type == ScalingType.ROBUST:
         return RobustScaler()
+    elif scaling_type == ScalingType.MIN_MAX:
+        return MinMaxScaler()
+    elif scaling_type == ScalingType.MAX_ABS:
+        return MaxAbsScaler()
     else:
         return None
 
@@ -182,7 +185,7 @@ def calculate_score(message_type, args):
 
 def get_scikit_model_combinations_with_polynomials(num_features=1):
     combinations = []
-    degrees = [num_features]
+    degrees = [1]
     for method_name in regressors:
         for degree in degrees:
             for scaling_type in ScalingType.all():
@@ -240,8 +243,7 @@ def calculate_text_message_penalty(age_of_message, start_penalty=49.625, decay=5
 
 
 def calculate_tactical_graphics_score(age_of_message, start_cum_message_score=49.925, decay=1 / 60, mutliplier=3):
-    score = (start_cum_message_score - (age_of_message * decay)) * mutliplier
-    return round(score, 5)
+    return (start_cum_message_score - (age_of_message * decay)) * mutliplier
 
 
 def calculate_sos_score(age_of_message, num_blue_nodes, base=20, decay=4 / 60):

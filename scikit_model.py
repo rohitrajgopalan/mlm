@@ -34,7 +34,7 @@ class ScikitModel:
         actual_value = -1
         if self.sheet_name in ['text_messages', 'tactical_graphics', 'sos', 'blue_spots', 'red_spots']:
             actual_value = calculate_raw_score(self.sheet_name, feature_values_dict)
-        elif self.sheet_name in ['sos_operational_context', 'distance_to_enemy']:
+        elif self.sheet_name in ['sos_operational_context', 'distance_to_enemy_context', 'distance_to_enemy_aggregator']:
             actual_value = calculate_raw_multiplier(self.sheet_name, feature_values_dict)
         print('Actual Value for {0}:{1}'.format(self.sheet_name, actual_value))
         new_data = {self.label: actual_value}

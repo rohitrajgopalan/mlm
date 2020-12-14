@@ -5,7 +5,7 @@ from os import mkdir
 from os.path import dirname, realpath, join, isdir
 from mlm_utils import calculate_sos_operational_context_mutliplier
 
-max_number_of_seconds = 240
+max_number_of_seconds = 600
 cols = ['Seconds Since Last Sent SOS', 'Multiplier']
 
 df_train = pd.DataFrame(columns=cols)

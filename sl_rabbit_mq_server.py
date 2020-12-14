@@ -10,12 +10,12 @@ from rabbit_mq_server import RabbitMQServer
 from mlm_utils import *
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
-result_cols = ['regressor', 'polynomial_degree', 'scaling_type', 'enable_normalization', 'use_grid_search', 'mae', 'mse']
+result_cols = ['regressor', 'polynomial_degree', 'scaling_type', 'enable_normalization', 'use_grid_search', 'num_runs','mae', 'mse']
 
 
 class SLRabbitMQServer(RabbitMQServer):
     message_types = ['text_messages', 'tactical_graphics', 'sos', 'blue_spots', 'red_spots']
-    context_types = ['sos_operational_context', 'distance_to_enemy']
+    context_types = ['sos_operational_context', 'distance_to_enemy_context', 'distance_to_enemy_aggregator']
 
     context_models = {
         'sos_operational_context': {
@@ -29,12 +29,20 @@ class SLRabbitMQServer(RabbitMQServer):
             },
             'results': pd.DataFrame(columns=result_cols)
         },
-        'distance_to_enemy': {
+        'distance_to_enemy_context': {
             'model': None,
             'current_combination': -1,
             'features': ['#1 Nearest', '#2 Nearest', '#3 Nearest', '#4 Nearest',
                          '#5 Nearest'],
             'label': 'Mutliplier',
+            'results': pd.DataFrame(columns=result_cols)
+        },
+        'distance_to_enemy_aggregator': {
+            'model': None,
+            'current_combination': -1,
+            'features': ['#1 Nearest', '#2 Nearest', '#3 Nearest', '#4 Nearest',
+                         '#5 Nearest'],
+            'label': 'Multiplier',
             'results': pd.DataFrame(columns=result_cols)
         }
     }
@@ -88,7 +96,6 @@ class SLRabbitMQServer(RabbitMQServer):
                 'Is Affected': 'isAffected',
                 'Score': 'score'
             },
-            'pre_trained_results': None,
             'results': pd.DataFrame(columns=result_cols)
         },
         'red_spots': {
@@ -126,6 +133,7 @@ class SLRabbitMQServer(RabbitMQServer):
                                        'scaling_type': scaling_type.name,
                                        'enable_normalization': 'Yes' if enable_normalization else 'No',
                                        'use_grid_search': 'Yes' if use_grid_search else 'No',
+                                       'num_runs': 0,
                                        'mae': 0,
                                        'mse': 0}, ignore_index=True)
         for context_type in self.context_types:
@@ -140,6 +148,7 @@ class SLRabbitMQServer(RabbitMQServer):
                      'scaling_type': scaling_type.name,
                      'enable_normalization': 'Yes' if enable_normalization else 'No',
                      'use_grid_search': 'Yes' if use_grid_search else 'No',
+                     'num_runs': 0,
                      'mae': 0,
                      'mse': 0}, ignore_index=True)
         super().__init__(queue_name='sl_request_queue', durable=True)
@@ -184,22 +193,35 @@ class SLRabbitMQServer(RabbitMQServer):
             if not predicted_raw_score:
                 return calculate_score(message_type, request_body)
             else:
-                distance_to_enemy_multiplier = -1
+                distance_to_enemy_context_multiplier = -1
                 nearest_values = request_body['nearestValues']
                 nearest_values = np.array(nearest_values)
                 nearest_values = np.sort(nearest_values)
                 nearest_values = nearest_values[:5]
-                if self.context_models['distance_to_enemy']['model'] is None:
-                    distance_to_enemy_multiplier = calculate_distance_to_enemy_multiplier(nearest_values)
+                if self.context_models['distance_to_enemy_context']['model'] is None:
+                    distance_to_enemy_context_multiplier = calculate_distance_to_enemy_multiplier(nearest_values)
                 else:
                     try:
                         feature_value_dict = {}
                         for i in range(5):
                             feature_value_dict.update({'#{0} Nearest'.format(i + 1): nearest_values[i]})
-                            distance_to_enemy_multiplier = self.context_models['distance_to_enemy'][
+                            distance_to_enemy_context_multiplier = self.context_models['distance_to_enemy_context'][
                                 'model'].predict_then_fit(feature_value_dict)
                     except:
-                        distance_to_enemy_multiplier = calculate_distance_to_enemy_multiplier(nearest_values)
+                        distance_to_enemy_context_multiplier = calculate_distance_to_enemy_multiplier(nearest_values)
+
+                distance_to_enemy_aggregate_multiplier = -1
+                if self.context_models['distance_to_enemy_aggregator']['model'] is None:
+                    distance_to_enemy_aggregate_multiplier = calculate_distance_to_enemy_aggregator(nearest_values)
+                else:
+                    try:
+                        feature_value_dict = {}
+                        for i in range(5):
+                            feature_value_dict.update({'#{0} Nearest'.format(i + 1): nearest_values[i]})
+                            distance_to_enemy_aggregate_multiplier = self.context_models['distance_to_enemy_aggregator'][
+                                'model'].predict_then_fit(feature_value_dict)
+                    except:
+                        distance_to_enemy_aggregate_multiplier = calculate_distance_to_enemy_aggregator(nearest_values)
 
                 if self.context_models['sos_operational_context']['model'] is None:
                     sos_multiplier = calculate_sos_operational_context_mutliplier(request_body['secondsSinceLastSOS'])
@@ -212,7 +234,12 @@ class SLRabbitMQServer(RabbitMQServer):
                         sos_multiplier = calculate_sos_operational_context_mutliplier(
                             request_body['secondsSinceLastSOS'])
 
-                return predicted * sos_multiplier * distance_to_enemy_multiplier
+                if message_type in ['blue_spots', 'tactical_graphics', 'text_messages']:
+                    return predicted * sos_multiplier * distance_to_enemy_context_multiplier
+                elif message_type == 'red_spots':
+                    return predicted * sos_multiplier * distance_to_enemy_aggregate_multiplier
+                else:
+                    return predicted
 
         elif request_type == self.MODEL_CREATION:
             all_message_models_created = np.empty(5, dtype=np.bool)
@@ -220,7 +247,7 @@ class SLRabbitMQServer(RabbitMQServer):
                 all_message_models_created[i] = self.create_model_for_message_type(message_type,
                                                                                    request_body) == 1
             all_context_models_created = np.empty(2, dtype=np.bool)
-            for i, context_type in enumerate(['sos_operational_context', 'distance_to_enemy']):
+            for i, context_type in enumerate(self.context_types):
                 all_context_models_created[i] = self.create_model_for_context_type(context_type,
                                                                                    request_body) == 1
 
@@ -236,17 +263,24 @@ class SLRabbitMQServer(RabbitMQServer):
 
         combinations = self.message_type_models[message_type]['combinations']
 
-        if 0 <= self.message_type_models[message_type]['current_combination'] < 48:
+        if 0 <= self.message_type_models[message_type]['current_combination'] < len(combinations):
             if mse > -1 and mae > -1:
-                self.message_type_models[message_type]['results'].iat[self.message_type_models[message_type]['current_combination'], 5] = mae
-                self.message_type_models[message_type]['results'].iat[self.message_type_models[message_type]['current_combination'], 6] = mse
+                num_runs = self.message_type_models[message_type]['results'].iat[self.message_type_models[message_type]['current_combination'], 5]
+                old_mae = self.message_type_models[message_type]['results'].iat[self.message_type_models[message_type]['current_combination'], 6]
+                old_mse = self.message_type_models[message_type]['results'].iat[self.message_type_models[message_type]['current_combination'], 7]
+
+                num_runs += 1
+
+                self.message_type_models[message_type]['results'].iat[self.message_type_models[message_type]['current_combination'], 5] = num_runs
+                self.message_type_models[message_type]['results'].iat[self.message_type_models[message_type]['current_combination'], 6] = (old_mae+mae)/num_runs
+                self.message_type_models[message_type]['results'].iat[self.message_type_models[message_type]['current_combination'], 7] = (old_mse+mse)/num_runs
         try:
             if request_body['useBest'] == 1:
                 model = self.get_best_model_for_message_type(message_type, request_body['metricType'])
                 self.message_type_models[message_type].update({'model': model, 'actual': [], 'predicted': []})
                 return 1
             else:
-                if 0 <= request_body['combinationID'] < 48:
+                if 0 <= request_body['combinationID'] < len(combinations):
                     self.message_type_models[message_type]['current_combination'] = request_body['combinationID']
                     combination = combinations[self.message_type_models[message_type]['current_combination']]
                     model = ScikitModel(combination, message_type, self.message_type_models[message_type]['features'],
@@ -269,17 +303,24 @@ class SLRabbitMQServer(RabbitMQServer):
 
         combinations = self.context_models[context_type]['combinations']
 
-        if 0 <= self.context_models[context_type]['current_combination'] < 48:
+        if 0 <= self.context_models[context_type]['current_combination'] < len(combinations):
             if mse > -1 and mae > -1:
-                self.context_models[context_type]['results'].iat[self.context_models[context_type]['current_combination'], 5] = mae
-                self.context_models[context_type]['results'].iat[self.context_models[context_type]['current_combination'], 6] = mae
+                num_runs = self.context_models[context_type]['results'].iat[self.context_models[context_type]['current_combination'], 5]
+                old_mae = self.context_models[context_type]['results'].iat[self.context_models[context_type]['current_combination'], 6]
+                old_mse = self.context_models[context_type]['results'].iat[self.context_models[context_type]['current_combination'], 7]
+
+                num_runs += 1
+
+                self.context_models[context_type]['results'].iat[self.context_models[context_type]['current_combination'], 5] = num_runs
+                self.context_models[context_type]['results'].iat[self.context_models[context_type]['current_combination'], 6] = (old_mae+mae)/num_runs
+                self.context_models[context_type]['results'].iat[self.context_models[context_type]['current_combination'], 7] = (old_mse+mse)/num_runs
         try:
             if request_body['useBest'] == 1:
                 model = self.get_best_model_for_message_type(message_type, request_body['metricType'])
                 self.context_models[context_type].update({'model': model, 'actual': [], 'predicted': []})
                 return 1
             else:
-                if 0 <= request_body['combinationID'] <= 48:
+                if 0 <= request_body['combinationID'] < len(combinations):
                     self.context_models[context_type]['current_combination'] = request_body['combinationID']
                     combination = combinations[self.context_models[context_type]['current_combination']]
                     model = ScikitModel(combination, context_type, self.context_models[context_type]['features'],

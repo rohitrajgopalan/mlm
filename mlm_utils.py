@@ -153,24 +153,31 @@ def calculate_raw_score(message_type, args):
 
 
 def calculate_raw_multiplier(context_type, args):
-    if context_type == 'distance_to_enemy':
+    if 'distance_to_enemy' in context_type:
         if 'nearestValues' in args:
             nearest_values = args['nearestValues']
         else:
             nearest_values = []
             for i in range(5):
                 nearest_values.append(args['#{0} Nearest'.format(i + 1)])
-        return calculate_distance_to_enemy_multiplier(nearest_values)
-    elif context_type == 'sos':
+        if context_type == 'distance_to_enemy_context':
+            return calculate_distance_to_enemy_multiplier(nearest_values)
+        else:
+            return calculate_distance_to_enemy_aggregator(nearest_values)
+    elif context_type == 'sos_operational_context':
         return calculate_sos_operational_context_mutliplier(args['Seconds Since Last Sent SOS']
                                                             if 'Seconds Since Last Sent SOS' in args
                                                             else args['secondsSinceLastSOS'])
 
 
 def calculate_score(message_type, args):
-    return calculate_raw_score(message_type, args) * calculate_raw_multiplier('distance_to_enemy',
-                                                                              args) * calculate_raw_multiplier('sos',
-                                                                                                               args)
+    raw_score = calculate_raw_score(message_type, args)
+    if message_type in ['blue_spots', 'tactical_graphics', 'text_messages']:
+        return raw_score * calculate_raw_multiplier('distance_to_enemy_context', args) * calculate_raw_multiplier('sos_operational_context', args)
+    elif message_type == 'red_spots':
+        return raw_score * calculate_raw_multiplier('distance_to_enemy_aggregator', args) * calculate_raw_multiplier('sos_operational_context', args)
+    else:
+        return raw_score
 
 
 def get_scikit_model_combinations_with_polynomials(num_features=1):
@@ -218,8 +225,13 @@ def calculate_red_spots_score(distance_since_last_update, num_blue_nodes, averag
 
 
 def calculate_distance_to_enemy_multiplier(nearest_values):
-    multipliers = np.where(nearest_values < 100, 1 - (nearest_values / 100), 0)
+    multipliers = np.where(nearest_values < 600, (1 - (nearest_values / 600))*10, 0)
     return np.sum(multipliers) + 1
+
+
+def calculate_distance_to_enemy_aggregator(nearest_values):
+    multipliers = np.where(nearest_values < 600, 2.5, 0)
+    return np.sum(multipliers)
 
 
 def calculate_text_message_penalty(age_of_message, start_penalty=49.625, decay=5 / 60):
@@ -242,7 +254,7 @@ def calculate_sos_score(age_of_message, num_blue_nodes, base=20, decay=4 / 60):
 
 
 def calculate_sos_operational_context_mutliplier(seconds_since_last_sent_sos):
-    return 2 if seconds_since_last_sent_sos < 121 else 1
+    return 6 if seconds_since_last_sent_sos < 300 else 1
 
 
 def load_training_data(cols, sheet_name):

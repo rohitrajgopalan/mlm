@@ -10,7 +10,7 @@ from rabbit_mq_server import RabbitMQServer
 from mlm_utils import *
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
-result_cols = ['regressor', 'polynomial_degree', 'scaling_type', 'enable_normalization', 'use_grid_search', 'num_runs','mae', 'mse']
+result_cols = ['regressor', 'polynomial_degree', 'scaling_type', 'enable_normalization', 'use_grid_search', 'num_runs', 'mae', 'mse']
 
 
 class SLRabbitMQServer(RabbitMQServer):
@@ -120,6 +120,7 @@ class SLRabbitMQServer(RabbitMQServer):
     COST = 'UPDATE_MODEL'
 
     def __init__(self):
+        super().__init__(queue_name='sl_request_queue', durable=True)
         for message_type in self.message_types:
             combinations = get_scikit_model_combinations_with_polynomials(
                 len(self.message_type_models[message_type]['features']))
@@ -151,7 +152,7 @@ class SLRabbitMQServer(RabbitMQServer):
                      'num_runs': 0,
                      'mae': 0,
                      'mse': 0}, ignore_index=True)
-        super().__init__(queue_name='sl_request_queue', durable=True)
+        self.write_results()
 
     def write_results(self):
         results_dir = join(dirname(realpath('__file__')), 'results')
@@ -251,6 +252,7 @@ class SLRabbitMQServer(RabbitMQServer):
                 all_context_models_created[i] = self.create_model_for_context_type(context_type,
                                                                                    request_body) == 1
 
+            self.write_results()
             return 1 if all_context_models_created.all() and all_message_models_created.all() else 0
 
     def create_model_for_message_type(self, message_type, request_body):
@@ -360,10 +362,3 @@ class SLRabbitMQServer(RabbitMQServer):
 if __name__ == '__main__':
     server = SLRabbitMQServer()
     server.start()
-
-
-    def on_exit():
-        server.write_results()
-
-
-    atexit.register(on_exit)

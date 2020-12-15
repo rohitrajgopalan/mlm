@@ -234,7 +234,7 @@ def calculate_distance_to_enemy_multiplier(nearest_values):
 
 def calculate_distance_to_enemy_aggregator(nearest_values):
     multipliers = np.where(nearest_values < 600, 2.5, 0)
-    return np.sum(multipliers)
+    return np.sum(multipliers) + 1
 
 
 def calculate_text_message_penalty(age_of_message, start_penalty=49.625, decay=5 / 60):

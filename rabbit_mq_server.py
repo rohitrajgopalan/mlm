@@ -12,9 +12,9 @@ from abc import abstractmethod
 
 class RabbitMQServer(ABC):
 
-    def __init__(self, queue_name, durable=False):
+    def __init__(self, queue_name, durable=False, heartbeat=600, blocked_connection_timeout=600):
         connection = pika.BlockingConnection(
-            pika.ConnectionParameters(host='localhost'))
+            pika.ConnectionParameters(host='localhost', heartbeat=heartbeat, blocked_connection_timeout=blocked_connection_timeout, port=5672))
         channel = connection.channel()
         channel.queue_declare(queue=queue_name, durable=durable)
         channel.basic_qos(prefetch_count=1)
@@ -28,7 +28,10 @@ class RabbitMQServer(ABC):
         self.channel.start_consuming()
 
     def _on_request(self, channel, method, props, body):
-        request = json.loads(body)
+        try:
+            request = json.loads(body)
+        except TypeError:
+            request = json.loads(body.decode('utf-8'))
         response = self._get_reply(request)
         channel.basic_publish(
             exchange='',

@@ -243,11 +243,11 @@ class SLRabbitMQServer(RabbitMQServer):
                     return predicted
 
         elif request_type == self.MODEL_CREATION:
-            all_message_models_created = np.empty(5, dtype=np.bool)
+            all_message_models_created = np.empty(len(self.message_types), dtype=np.bool)
             for i, message_type in enumerate(self.message_types):
                 all_message_models_created[i] = self.create_model_for_message_type(message_type,
                                                                                    request_body) == 1
-            all_context_models_created = np.empty(2, dtype=np.bool)
+            all_context_models_created = np.empty(len(self.context_types), dtype=np.bool)
             for i, context_type in enumerate(self.context_types):
                 all_context_models_created[i] = self.create_model_for_context_type(context_type,
                                                                                    request_body) == 1

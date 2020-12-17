@@ -10,8 +10,7 @@ from rabbit_mq_server import RabbitMQServer
 from mlm_utils import *
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
-result_cols = ['regressor', 'polynomial_degree', 'scaling_type', 'enable_normalization', 'use_grid_search', 'num_runs',
-               'mae', 'mse']
+result_cols = ['regressor', 'polynomial_degree', 'scaling_type', 'enable_normalization', 'use_grid_search', 'num_runs', 'mae', 'mse']
 
 
 class SLRabbitMQServer(RabbitMQServer):
@@ -35,7 +34,7 @@ class SLRabbitMQServer(RabbitMQServer):
             'current_combination': -1,
             'features': ['#1 Nearest', '#2 Nearest', '#3 Nearest', '#4 Nearest',
                          '#5 Nearest'],
-            'label': 'Multiplier',
+            'label': 'Mutliplier',
             'results': pd.DataFrame(columns=result_cols)
         },
         'distance_to_enemy_aggregator': {
@@ -153,6 +152,7 @@ class SLRabbitMQServer(RabbitMQServer):
                      'num_runs': 0,
                      'mae': 0,
                      'mse': 0}, ignore_index=True)
+        self.write_results()
 
     def write_results(self):
         results_dir = join(dirname(realpath('__file__')), 'results')
@@ -219,8 +219,7 @@ class SLRabbitMQServer(RabbitMQServer):
                         feature_value_dict = {}
                         for i in range(5):
                             feature_value_dict.update({'#{0} Nearest'.format(i + 1): nearest_values[i]})
-                            distance_to_enemy_aggregate_multiplier = \
-                            self.context_models['distance_to_enemy_aggregator'][
+                            distance_to_enemy_aggregate_multiplier = self.context_models['distance_to_enemy_aggregator'][
                                 'model'].predict_then_fit(feature_value_dict)
                     except:
                         distance_to_enemy_aggregate_multiplier = calculate_distance_to_enemy_aggregator(nearest_values)
@@ -244,15 +243,16 @@ class SLRabbitMQServer(RabbitMQServer):
                     return predicted
 
         elif request_type == self.MODEL_CREATION:
-            all_message_models_created = np.empty(self.message_types, dtype=np.bool)
+            all_message_models_created = np.empty(5, dtype=np.bool)
             for i, message_type in enumerate(self.message_types):
                 all_message_models_created[i] = self.create_model_for_message_type(message_type,
                                                                                    request_body) == 1
-            all_context_models_created = np.empty(self.context_types, dtype=np.bool)
+            all_context_models_created = np.empty(2, dtype=np.bool)
             for i, context_type in enumerate(self.context_types):
                 all_context_models_created[i] = self.create_model_for_context_type(context_type,
                                                                                    request_body) == 1
 
+            self.write_results()
             return 1 if all_context_models_created.all() and all_message_models_created.all() else 0
 
     def create_model_for_message_type(self, message_type, request_body):
@@ -267,34 +267,27 @@ class SLRabbitMQServer(RabbitMQServer):
 
         if 0 <= self.message_type_models[message_type]['current_combination'] < len(combinations):
             if mse > -1 and mae > -1:
-                num_runs = self.message_type_models[message_type]['results'].iat[
-                    self.message_type_models[message_type]['current_combination'], 5]
-                old_mae = self.message_type_models[message_type]['results'].iat[
-                    self.message_type_models[message_type]['current_combination'], 6]
-                old_mse = self.message_type_models[message_type]['results'].iat[
-                    self.message_type_models[message_type]['current_combination'], 7]
+                num_runs = self.message_type_models[message_type]['results'].iat[self.message_type_models[message_type]['current_combination'], 5]
+                old_mae = self.message_type_models[message_type]['results'].iat[self.message_type_models[message_type]['current_combination'], 6]
+                old_mse = self.message_type_models[message_type]['results'].iat[self.message_type_models[message_type]['current_combination'], 7]
 
                 num_runs += 1
 
-                self.message_type_models[message_type]['results'].iat[
-                    self.message_type_models[message_type]['current_combination'], 5] = num_runs
-                self.message_type_models[message_type]['results'].iat[
-                    self.message_type_models[message_type]['current_combination'], 6] = (old_mae + mae) / num_runs
-                self.message_type_models[message_type]['results'].iat[
-                    self.message_type_models[message_type]['current_combination'], 7] = (old_mse + mse) / num_runs
+                self.message_type_models[message_type]['results'].iat[self.message_type_models[message_type]['current_combination'], 5] = num_runs
+                self.message_type_models[message_type]['results'].iat[self.message_type_models[message_type]['current_combination'], 6] = (old_mae+mae)/num_runs
+                self.message_type_models[message_type]['results'].iat[self.message_type_models[message_type]['current_combination'], 7] = (old_mse+mse)/num_runs
         try:
             if request_body['useBest'] == 1:
                 model = self.get_best_model_for_message_type(message_type, request_body['metricType'])
-                self.message_type_models[message_type].update({'model': model})
+                self.message_type_models[message_type].update({'model': model, 'actual': [], 'predicted': []})
                 return 1
             else:
                 if 0 <= request_body['combinationID'] < len(combinations):
-                    if self.message_type_models[message_type]['model'] is None or self.message_type_models[message_type]['model'].current_id != request_body['combinationID']:
-                        model = ScikitModel(request_body['combinationID'], message_type,
-                                            self.message_type_models[message_type]['features'],
-                                            self.message_type_models[message_type]['label'])
-                        self.message_type_models[message_type].update({'model': model})
-                        self.message_type_models[message_type]['current_combination'] = request_body['combinationID']
+                    self.message_type_models[message_type]['current_combination'] = request_body['combinationID']
+                    combination = combinations[self.message_type_models[message_type]['current_combination']]
+                    model = ScikitModel(combination, message_type, self.message_type_models[message_type]['features'],
+                                        self.message_type_models[message_type]['label'])
+                    self.message_type_models[message_type].update({'model': model})
                     return 1
                 else:
                     return 0
@@ -314,59 +307,52 @@ class SLRabbitMQServer(RabbitMQServer):
 
         if 0 <= self.context_models[context_type]['current_combination'] < len(combinations):
             if mse > -1 and mae > -1:
-                num_runs = self.context_models[context_type]['results'].iat[
-                    self.context_models[context_type]['current_combination'], 5]
-                old_mae = self.context_models[context_type]['results'].iat[
-                    self.context_models[context_type]['current_combination'], 6]
-                old_mse = self.context_models[context_type]['results'].iat[
-                    self.context_models[context_type]['current_combination'], 7]
+                num_runs = self.context_models[context_type]['results'].iat[self.context_models[context_type]['current_combination'], 5]
+                old_mae = self.context_models[context_type]['results'].iat[self.context_models[context_type]['current_combination'], 6]
+                old_mse = self.context_models[context_type]['results'].iat[self.context_models[context_type]['current_combination'], 7]
 
                 num_runs += 1
 
-                self.context_models[context_type]['results'].iat[
-                    self.context_models[context_type]['current_combination'], 5] = num_runs
-                self.context_models[context_type]['results'].iat[
-                    self.context_models[context_type]['current_combination'], 6] = (old_mae + mae) / num_runs
-                self.context_models[context_type]['results'].iat[
-                    self.context_models[context_type]['current_combination'], 7] = (old_mse + mse) / num_runs
+                self.context_models[context_type]['results'].iat[self.context_models[context_type]['current_combination'], 5] = num_runs
+                self.context_models[context_type]['results'].iat[self.context_models[context_type]['current_combination'], 6] = (old_mae+mae)/num_runs
+                self.context_models[context_type]['results'].iat[self.context_models[context_type]['current_combination'], 7] = (old_mse+mse)/num_runs
         try:
             if request_body['useBest'] == 1:
-                model = self.get_best_model_for_context_type(message_type, request_body['metricType'])
-                self.context_models[context_type].update({'model': model})
+                model = self.get_best_model_for_message_type(message_type, request_body['metricType'])
+                self.context_models[context_type].update({'model': model, 'actual': [], 'predicted': []})
                 return 1
             else:
                 if 0 <= request_body['combinationID'] < len(combinations):
-                    if self.context_models[context_type]['model'] is None or self.context_models[context_type]['model'].current_id != request_body['combinationID']:
-                        model = ScikitModel(request_body['combinationID'], context_type,
-                                            self.context_models[context_type]['features'],
-                                            self.context_models[context_type]['label'])
-                        self.context_models[context_type].update({'model': model})
-                        self.context_models[context_type]['current_combination'] = request_body['combinationID']
+                    self.context_models[context_type]['current_combination'] = request_body['combinationID']
+                    combination = combinations[self.context_models[context_type]['current_combination']]
+                    model = ScikitModel(combination, context_type, self.context_models[context_type]['features'],
+                                        self.context_models[context_type]['label'])
+                    self.message_type_models[message_type].update({'model': model})
                     return 1
                 else:
                     return 0
         except:
             return 0
 
-    def get_best_model(self, results, metric_type, combinations, sheet_name, features, label):
-        lowest_val = np.min(results[metric_type])
-        metric_index = 6 if metric_type == 'mae' else 7
-        for i in range(len(combinations)):
-            if results.iat[i, metric_index] == lowest_val:
-                return ScikitModel(i, sheet_name, features, label)
-        return None
-
     def get_best_model_for_message_type(self, message_type, metric_type):
-        return self.get_best_model(self.message_type_models[message_type]['results'], metric_type,
-                                   self.message_type_models[message_type]['combinations'], message_type,
-                                   self.message_type_models[message_type]['features'],
+        results = self.message_type_models[message_type]['results']
+        lowest_val = np.min(results[metric_type])
+        for index, row in results.iterrows():
+            if row[metric] == lowest_val:
+                combination = (row['regressor'], row['polynomial_degree'],
+                               row['scaling_type'], row['enable_normalization'], row['use_grid_search'])
+                return ScikitModel(combination, message_type, self.message_type_models[message_type]['features'],
                                    self.message_type_models[message_type]['label'])
 
     def get_best_model_for_context_type(self, context_type, metric_type):
-        return self.get_best_model(self.context_models[context_type]['results'], metric_type,
-                                   self.context_models[context_type]['combinations'], context_type,
-                                   self.context_models[context_type]['features'],
-                                   self.context_models[context_type]['label'])
+        results = self.context_models[context_type]['results']
+        lowest_val = np.min(results[metric_type])
+        for index, row in results.iterrows():
+            if row[metric] == lowest_val:
+                combination = (row['regressor'], row['polynomial_degree'],
+                               row['scaling_type'], row['enable_normalization'], row['use_grid_search'])
+                return ScikitModel(combination, context_type, self.context_models[context_type]['features'],
+                                   self.message_type_models[context_type]['label'])
 
 
 # Before running the server, pull the RabbitMQ docker image:

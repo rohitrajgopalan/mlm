@@ -160,9 +160,9 @@ def calculate_raw_multiplier(context_type, args):
         if 'nearestValues' in args:
             nearest_values = args['nearestValues']
         else:
-            nearest_values = []
+            nearest_values = np.zeros(5)
             for i in range(5):
-                nearest_values.append(args['#{0} Nearest'.format(i + 1)])
+                nearest_values[i] = args['#{0} Nearest'.format(i + 1)]
         if context_type == 'distance_to_enemy_context':
             return calculate_distance_to_enemy_multiplier(nearest_values)
         else:
@@ -228,11 +228,13 @@ def calculate_red_spots_score(distance_since_last_update, num_blue_nodes, averag
 
 
 def calculate_distance_to_enemy_multiplier(nearest_values):
+    nearest_values = np.array(nearest_values)
     multipliers = np.where(nearest_values < 600, (1 - (nearest_values / 600))*10, 0)
     return np.sum(multipliers) + 1
 
 
 def calculate_distance_to_enemy_aggregator(nearest_values):
+    nearest_values = np.array(nearest_values)
     multipliers = np.where(nearest_values < 600, 2.5, 0)
     return np.sum(multipliers) + 1
 

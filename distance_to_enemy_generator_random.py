@@ -66,4 +66,4 @@ def generate_data(max_num_files, max_rows):
                    index=False)
 
 
-generate_data(1000, 1000)
+generate_data(50, 1000)

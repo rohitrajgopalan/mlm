@@ -24,7 +24,7 @@ class RabbitMQServer(ABC):
         self.channel = channel
 
     def start(self):
-        print("Awaiting RPC requests")
+        # print("Awaiting RPC requests")
         self.channel.start_consuming()
 
     def _on_request(self, channel, method, props, body):

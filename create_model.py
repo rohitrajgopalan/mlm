@@ -3,6 +3,10 @@ import os
 from os import mkdir
 from os.path import dirname, realpath, isdir, isfile, join
 import pickle
+import pandas as pd
+
+result_cols = ['combination_id', 'regressor', 'scaling_type', 'enable_normalization', 'use_grid_search', 'num_runs',
+               'mae', 'mse']
 
 context_types = {
     'sos_operational_context': {
@@ -46,15 +50,19 @@ message_types = {
     }
 }
 
-combinations = get_scikit_model_combinations_with_polynomials()
+combinations = get_scikit_model_combinations()
 datasets_dir = join(dirname(realpath('__file__')), 'datasets')
 models_dir = join(dirname(realpath('__file__')), 'models')
+results_dir = join(dirname(realpath('__file__')), 'results')
 
 if not isdir(models_dir):
     mkdir(models_dir)
 
+if not isdir(results_dir):
+    mkdir(results_dir)
 
 def save_models(model_name, features, label):
+    results = pd.DataFrame(columns=result_cols)
     model_dir = join(models_dir, model_name)
     if not isdir(model_dir):
         mkdir(model_dir)
@@ -64,6 +72,16 @@ def save_models(model_name, features, label):
         pipeline_model.fit(X, y)
         file_name = join(model_dir, '{0}.pkl'.format(i))
         pickle.dump(pipeline_model, open(file_name, 'wb'))
+        method_name, scaling_type, enable_normalization, use_grid_search = combination
+        results = results.append({'combination_id': i,
+                                       'regressor': method_name,
+                                       'scaling_type': scaling_type.name,
+                                       'enable_normalization': 'Yes' if enable_normalization else 'No',
+                                       'use_grid_search': 'Yes' if use_grid_search else 'No',
+                                       'num_runs': 0,
+                                       'mae': 0.00000,
+                                       'mse': 0.00000}, ignore_index=True)
+    results.to_csv(join(results_dir, '{0}.csv'.format(model_name)), index=False)
 
 
 for context_type in context_types:

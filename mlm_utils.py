@@ -183,16 +183,13 @@ def calculate_score(message_type, args):
         return raw_score
 
 
-def get_scikit_model_combinations_with_polynomials(num_features=1):
+def get_scikit_model_combinations():
     combinations = []
-    degrees = [1]
     for method_name in regressors:
-        for degree in degrees:
-            for scaling_type in ScalingType.all():
-                for enable_normalization in [False, True]:
-                    for use_grid_search in [False, True]:
-                        combinations.append((method_name, degree, scaling_type,
-                                             enable_normalization, use_grid_search))
+        for scaling_type in ScalingType.all():
+            for enable_normalization in [False, True]:
+                for use_grid_search in [False, True]:
+                    combinations.append((method_name, scaling_type, enable_normalization, use_grid_search))
     return combinations
 
 
@@ -268,10 +265,7 @@ def load_training_data(cols, sheet_name):
 
 def make_pipeline(combination):
     pipeline_list = []
-    method_name, degree, scaling_type, enable_normalization, use_grid_search = combination
-    if degree > 1:
-        pipeline_list.append(
-            ('poly', PolynomialFeatures(degree=degree)))
+    method_name, scaling_type, enable_normalization, use_grid_search = combination
     scaler = get_scaler_by_type(scaling_type)
     if scaler is not None:
         pipeline_list.append(('scaler', scaler))

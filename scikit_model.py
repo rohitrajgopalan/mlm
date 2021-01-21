@@ -15,23 +15,24 @@ class ScikitModel:
         self.label = label
         self.actual_values = []
         self.predicted_values = []
+        # print('Loaded {0}.pkl for {1}'.format(combination_id, sheet_name))
 
     def predict(self, feature_values_dict):
         test_input = []
-        print('Feature values:', feature_values_dict)
+        # print('Feature values for {0}: {1}'.format(self.sheet_name, feature_values_dict))
         actual_value = -1
         if self.sheet_name in ['text_messages', 'tactical_graphics', 'sos', 'blue_spots', 'red_spots']:
             actual_value = calculate_raw_score(self.sheet_name, feature_values_dict)
         elif self.sheet_name in ['sos_operational_context', 'distance_to_enemy_context',
                                  'distance_to_enemy_aggregator']:
             actual_value = calculate_raw_multiplier(self.sheet_name, feature_values_dict)
-        print('Actual Value for {0}:{1}'.format(self.sheet_name, actual_value))
+        # print('Actual Value for {0}:{1}'.format(self.sheet_name, actual_value))
         for feature in feature_values_dict:
             if feature in self.features:
                 test_input.append(feature_values_dict[feature])
         test_input = np.array([test_input])
         predicted_value = self.pipeline.predict(test_input)[0]
-        print('Predicted Value for {0}:{1}'.format(self.sheet_name, predicted_value))
+        # print('Predicted Value for {0}:{1}'.format(self.sheet_name, predicted_value))
         self.actual_values.append(actual_value)
         self.predicted_values.append(predicted_value)
         return predicted_value

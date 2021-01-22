@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2021-01-22T05:53:44.080Z" agent="5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36" etag="3KZg4NBwQOPDc3okyJaA" version="14.2.6" type="github">
+<mxfile host="app.diagrams.net" modified="2021-01-22T05:57:39.681Z" agent="5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36" etag="FFDCUmTWudvDjRhKPg-L" version="14.2.6" type="github">
   <diagram id="ktkZ-i-EnIW7HWW7qE4-" name="Page-1">
     <mxGraphModel dx="1422" dy="916" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
       <root>
@@ -115,7 +115,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="6YndcZjsNWdxnJt-hnvo-40" value="Reponse (Total Cost = &#39;Raw&#39; Cost x Multiplier(s))" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=15;" vertex="1" connectable="0" parent="6YndcZjsNWdxnJt-hnvo-39">
+        <mxCell id="6YndcZjsNWdxnJt-hnvo-40" value="Reponse (Total Cost = Cost x Multiplier(s))" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=15;" vertex="1" connectable="0" parent="6YndcZjsNWdxnJt-hnvo-39">
           <mxGeometry x="-0.1544" relative="1" as="geometry">
             <mxPoint x="16" as="offset" />
           </mxGeometry>
@@ -151,6 +151,26 @@
             <Array as="points">
               <mxPoint x="1110" y="260" />
             </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="6YndcZjsNWdxnJt-hnvo-64" value="&lt;font style=&quot;font-size: 13px&quot;&gt;&#39;Raw&#39; Cost&lt;/font&gt;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=21;" vertex="1" connectable="0" parent="6YndcZjsNWdxnJt-hnvo-58">
+          <mxGeometry x="0.1265" y="-2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="6YndcZjsNWdxnJt-hnvo-66" value="" style="edgeStyle=segmentEdgeStyle;endArrow=classic;html=1;fontSize=10;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" target="6YndcZjsNWdxnJt-hnvo-25">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1240" y="260" as="sourcePoint" />
+            <mxPoint x="1260" y="210" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1270" y="260" />
+              <mxPoint x="1270" y="160" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="6YndcZjsNWdxnJt-hnvo-67" value="&lt;font style=&quot;font-size: 14px&quot;&gt;Multiplier(s)&lt;/font&gt;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;" vertex="1" connectable="0" parent="6YndcZjsNWdxnJt-hnvo-66">
+          <mxGeometry x="0.24" relative="1" as="geometry">
+            <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
       </root>

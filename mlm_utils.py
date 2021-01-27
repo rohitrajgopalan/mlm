@@ -93,35 +93,14 @@ def get_testable_parameters(method_name):
         return {}
 
 
-class ScalingType(enum.Enum):
-    STANDARD = 1,
-    MAX_ABS = 2,
-    MIN_MAX = 3,
-    ROBUST = 4,
-    NONE = 5,
+class PreProcessingType(enum.Enum):
+    SCALING = 1,
+    NORMALIZATION = 2,
+    NONE = 3
 
     @staticmethod
     def all():
-        return [ScalingType.NONE, ScalingType.STANDARD, ScalingType.MAX_ABS, ScalingType.MIN_MAX, ScalingType.ROBUST]
-
-    @staticmethod
-    def get_type_by_name(name):
-        for scaling_type in ScalingType.all():
-            if scaling_type.name.lower() == name.lower():
-                return scaling_type
-
-
-def get_scaler_by_type(scaling_type):
-    if scaling_type == ScalingType.STANDARD:
-        return StandardScaler()
-    elif scaling_type == ScalingType.ROBUST:
-        return RobustScaler()
-    elif scaling_type == ScalingType.MIN_MAX:
-        return MinMaxScaler()
-    elif scaling_type == ScalingType.MAX_ABS:
-        return MaxAbsScaler()
-    else:
-        return None
+        return [PreProcessingType.SCALING, PreProcessingType.NORMALIZATION, PreProcessingType.NONE]
 
 
 def calculate_raw_score(message_type, args):
@@ -176,9 +155,11 @@ def calculate_raw_multiplier(context_type, args):
 def calculate_score(message_type, args):
     raw_score = calculate_raw_score(message_type, args)
     if message_type in ['blue_spots', 'tactical_graphics', 'text_messages']:
-        return raw_score * calculate_raw_multiplier('distance_to_enemy_context', args) * calculate_raw_multiplier('sos_operational_context', args)
+        return raw_score * calculate_raw_multiplier('distance_to_enemy_context', args) * calculate_raw_multiplier(
+            'sos_operational_context', args)
     elif message_type == 'red_spots':
-        return raw_score * calculate_raw_multiplier('distance_to_enemy_aggregator', args) * calculate_raw_multiplier('sos_operational_context', args)
+        return raw_score * calculate_raw_multiplier('distance_to_enemy_aggregator', args) * calculate_raw_multiplier(
+            'sos_operational_context', args)
     else:
         return raw_score
 
@@ -186,10 +167,8 @@ def calculate_score(message_type, args):
 def get_scikit_model_combinations():
     combinations = []
     for method_name in regressors:
-        for scaling_type in ScalingType.all():
-            for enable_normalization in [False, True]:
-                for use_grid_search in [False, True]:
-                    combinations.append((method_name, scaling_type, enable_normalization, use_grid_search))
+        for pre_processing_type in PreProcessingType.all():
+            combinations.append((method_name, pre_processing_type))
     return combinations
 
 
@@ -226,7 +205,7 @@ def calculate_red_spots_score(distance_since_last_update, num_blue_nodes, averag
 
 def calculate_distance_to_enemy_multiplier(nearest_values):
     nearest_values = np.array(nearest_values)
-    multipliers = np.where(nearest_values < 600, (1 - (nearest_values / 600))*10, 0)
+    multipliers = np.where(nearest_values < 600, (1 - (nearest_values / 600)) * 10, 0)
     return np.sum(multipliers) + 1
 
 
@@ -265,20 +244,13 @@ def load_training_data(cols, sheet_name):
 
 def make_pipeline(combination):
     pipeline_list = []
-    method_name, scaling_type, enable_normalization, use_grid_search = combination
-    scaler = get_scaler_by_type(scaling_type)
-    if scaler is not None:
-        pipeline_list.append(('scaler', scaler))
-    normalizer = Normalizer() if enable_normalization else None
-    normalizer_added = False
-    if normalizer is not None and not use_grid_search:
-        normalizer_added = True
-        pipeline_list.append(('normalizer', normalizer))
-    if not normalizer_added and normalizer is not None and (
-            use_grid_search and method_name not in ['Linear Regression']):
-        pipeline_list.append(('normalizer', normalizer))
-    method = select_method(choosing_method=method_name, use_grid_search=use_grid_search, cv=10,
-                           enable_normalization=enable_normalization)
+    method_name, pre_processing_type = combination
+    if pre_processing_type == PreProcessingType.SCALING:
+        pipeline_list.append(('scaler', StandardScaler()))
+    elif pre_processing_type == PreProcessingType.NORMALIZATION:
+        pipeline_list.append(('normalizer', Normalizer()))
+    method = select_method(choosing_method=method_name, use_grid_search=True, cv=10,
+                           enable_normalization=pre_processing_type == PreProcessingType.NORMALIZATION)
     pipeline_list.append(('method', method))
     return Pipeline(pipeline_list)
 

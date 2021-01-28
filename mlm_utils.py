@@ -3,12 +3,11 @@ from os import listdir
 from os.path import dirname, realpath, join, isfile
 import numpy as np
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import Normalizer, PolynomialFeatures
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor, ExtraTreesRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import GridSearchCV
-from sklearn.preprocessing import RobustScaler, Normalizer, StandardScaler, MinMaxScaler, MaxAbsScaler
+from sklearn.preprocessing import Normalizer, StandardScaler
 from sklearn.tree import DecisionTreeRegressor
 import enum
 

@@ -4,12 +4,11 @@ import pandas as pd
 import atexit
 from os.path import join, realpath, dirname, isfile, isdir
 from os import mkdir
+from datetime import datetime
 
 from scikit_model import ScikitModel
 from rabbit_mq_server import RabbitMQServer
 from mlm_utils import *
-
-
 
 
 class SLRabbitMQServer(RabbitMQServer):
@@ -18,6 +17,7 @@ class SLRabbitMQServer(RabbitMQServer):
     result_cols = ['combination_id', 'regressor', 'scaling_type', 'enable_normalization', 'use_grid_search', 'num_runs',
                    'mae', 'mse']
     results_dir = join(dirname(realpath('__file__')), 'results')
+    datasets_dir = join(dirname(realpath('__file__')), 'datasets')
 
     context_type_models = {
         'sos_operational_context': {
@@ -115,22 +115,58 @@ class SLRabbitMQServer(RabbitMQServer):
     MODEL_CREATION = 'SET_MODEL'
     COST = 'UPDATE_MODEL'
     RESULTS = 'WRITE_RESULTS'
+    TRAIN = 'TRAIN_DATA'
+    DATA = 'EXPORT_DATA'
 
     def __init__(self):
         super().__init__(queue_name='sl_request_queue', durable=True)
         self.combinations = get_scikit_model_combinations()
+
+        if not isdir(self.datasets_dir):
+            mkdir(self.datasets_dir)
+
         for message_type in self.message_types:
-            self.message_type_models[message_type].update({'results': pd.read_csv(join(self.results_dir, '{0}.csv'.format(message_type)), usecols=self.result_cols, index_col=self.result_cols[0])})
+            self.message_type_models[message_type].update({'results': pd.read_csv(
+                join(self.results_dir, '{0}.csv'.format(message_type)), usecols=self.result_cols,
+                index_col=self.result_cols[0])})
+            cols = self.message_type_models[message_type]['features']
+            cols.append(self.message_type_models[message_type]['label'])
+            self.message_type_models[message_type].update({'data': pd.DataFrame(columns=cols)})
+            datasets_dir_message_type = join(self.datasets_dir, message_type)
+            if not isdir(datasets_dir_message_type):
+                mkdir(datasets_dir_message_type)
+
         for context_type in self.context_types:
-            self.context_type_models[context_type].update({'results': pd.read_csv(join(self.results_dir, '{0}.csv'.format(context_type)), usecols=self.result_cols, index_col=self.result_cols[0])})
+            self.context_type_models[context_type].update({'results': pd.read_csv(
+                join(self.results_dir, '{0}.csv'.format(context_type)), usecols=self.result_cols,
+                index_col=self.result_cols[0])})
+            cols = self.context_type_models[context_type]['features']
+            cols.append(self.context_type_models[context_type]['label'])
+            self.context_type_models[context_type].update({'data': pd.DataFrame(columns=cols)})
+            datasets_dir_context_type = join(self.datasets_dir, context_type)
+            if not isdir(datasets_dir_context_type):
+                mkdir(datasets_dir_context_type)
+
         self.writing_results = False
+        self.using_models = False
 
     def export_results(self):
         for message_type in self.message_types:
-            self.message_type_models[message_type]['results'].to_csv(join(self.results_dir, '{0}.csv'.format(message_type)))
+            self.message_type_models[message_type]['results'].to_csv(
+                join(self.results_dir, '{0}.csv'.format(message_type)))
 
         for context_type in self.context_types:
-            self.context_type_models[context_type]['results'].to_csv(join(self.results_dir, '{0}.csv'.format(context_type)))
+            self.context_type_models[context_type]['results'].to_csv(
+                join(self.results_dir, '{0}.csv'.format(context_type)))
+
+    def export_data(self):
+        for message_type in self.message_types:
+            self.message_type_models[message_type]['data'].to_csv(
+                join(self.datasets_dir, message_type, '{0}_{1}.csv'.format(message_type, datetime.now().strftime("%Y%m%d%H%M%S"))))
+
+        for context_type in self.context_types:
+            self.context_type_models[context_type]['data'].to_csv(
+                join(self.datasets_dir, context_type, '{0}_{1}.csv'.format(context_type, datetime.now().strftime("%Y%m%d%H%M%S"))))
 
     def _get_reply(self, request):
         request_body = request['requestBody']
@@ -149,13 +185,13 @@ class SLRabbitMQServer(RabbitMQServer):
                 predicted_raw_score = False
             else:
                 try:
-                    feature_value_dict_message = {}
+                    new_data_row = {}
                     features = self.message_type_models[message_type]['features']
                     cols_to_json = self.message_type_models[message_type]['cols_to_json']
                     for feature in features:
                         if feature in cols_to_json:
-                            feature_value_dict_message.update({feature: request_body[cols_to_json[feature]]})
-                    predicted = self.message_type_models[message_type]['model'].predict(feature_value_dict_message)
+                            new_data_row.update({feature: request_body[cols_to_json[feature]]})
+                    predicted = self.message_type_models[message_type]['model'].predict(new_data_row)
                 except:
                     predicted_raw_score = False
             # Attempt to predict multiplier otherwise calculate actual
@@ -171,10 +207,11 @@ class SLRabbitMQServer(RabbitMQServer):
                     distance_to_enemy_context_multiplier = calculate_distance_to_enemy_multiplier(nearest_values)
                 else:
                     try:
-                        feature_value_dict = {}
+                        new_data_row = {}
                         for i in range(5):
-                            feature_value_dict.update({'#{0} Nearest'.format(i + 1): nearest_values[i]})
-                        distance_to_enemy_context_multiplier = self.context_type_models['distance_to_enemy_context']['model'].predict(feature_value_dict)
+                            new_data_row.update({'#{0} Nearest'.format(i + 1): nearest_values[i]})
+                        distance_to_enemy_context_multiplier = self.context_type_models['distance_to_enemy_context'][
+                            'model'].predict(new_data_row)
                     except:
                         distance_to_enemy_context_multiplier = calculate_distance_to_enemy_multiplier(nearest_values)
 
@@ -182,10 +219,12 @@ class SLRabbitMQServer(RabbitMQServer):
                     distance_to_enemy_aggregate_multiplier = calculate_distance_to_enemy_aggregator(nearest_values)
                 else:
                     try:
-                        feature_value_dict = {}
+                        new_data_row = {}
                         for i in range(5):
-                            feature_value_dict.update({'#{0} Nearest'.format(i + 1): nearest_values[i]})
-                        distance_to_enemy_aggregate_multiplier = self.context_type_models['distance_to_enemy_aggregator']['model'].predict(feature_value_dict)
+                            new_data_row.update({'#{0} Nearest'.format(i + 1): nearest_values[i]})
+                        distance_to_enemy_aggregate_multiplier = \
+                            self.context_type_models['distance_to_enemy_aggregator']['model'].predict(
+                                new_data_row)
                     except:
                         distance_to_enemy_aggregate_multiplier = calculate_distance_to_enemy_aggregator(nearest_values)
 
@@ -193,8 +232,10 @@ class SLRabbitMQServer(RabbitMQServer):
                     sos_multiplier = calculate_sos_operational_context_mutliplier(request_body['secondsSinceLastSOS'])
                 else:
                     try:
-                        feature_value_dict = {'Seconds Since Last Sent SOS': request_body['secondsSinceLastSOS']}
-                        sos_multiplier = self.context_type_models['sos_operational_context']['model'].predict(feature_value_dict)
+                        new_data_row = {
+                            'Seconds Since Last Sent SOS': request_body['secondsSinceLastSOS']}
+                        sos_multiplier = self.context_type_models['sos_operational_context']['model'].predict(
+                            new_data_row)
                     except:
                         sos_multiplier = calculate_sos_operational_context_mutliplier(
                             request_body['secondsSinceLastSOS'])
@@ -213,6 +254,7 @@ class SLRabbitMQServer(RabbitMQServer):
 
         elif request_type == self.MODEL_CREATION:
             self.writing_results = False
+            self.using_models = True
             all_message_models_created = np.empty(len(self.message_types), dtype=np.bool)
             for i, message_type in enumerate(self.message_types):
                 all_message_models_created[i] = self.create_model_for_message_type(message_type,
@@ -231,13 +273,55 @@ class SLRabbitMQServer(RabbitMQServer):
                 self.export_results()
             return 1
 
+        elif request_type == self.TRAIN:
+            message_type = request_body['messageType'].lower()
+            nearest_values = request_body['nearestValues']
+            nearest_values = np.array(nearest_values)
+            nearest_values = np.sort(nearest_values)
+            nearest_values = nearest_values[:5]
+
+            new_data_row_distance_to_enemy = {}
+            new_data_row_distance_to_enemy_context = new_data_row_distance_to_enemy
+            new_data_row_distance_to_enemy_aggregator = new_data_row_distance_to_enemy
+
+            for i in range(5):
+                new_data_row_distance_to_enemy.update({'#{0} Nearest'.format(i + 1): nearest_values[i]})
+            new_data_row_distance_to_enemy_context.update(
+                {'Multiplier': calculate_distance_to_enemy_multiplier(nearest_values)})
+            new_data_row_distance_to_enemy_aggregator.update(
+                {'Multiplier': calculate_distance_to_enemy_aggregator(nearest_values)})
+
+            self.context_type_models['distance_to_enemy_context']['data'] = \
+                self.context_type_models['distance_to_enemy_context']['data'].append(
+                    new_data_row_distance_to_enemy_context,
+                    ignore_index=True)
+            self.context_type_models['distance_to_enemy_aggregator']['data'] = \
+                self.context_type_models['distance_to_enemy_aggregator']['data'].append(
+                    new_data_row_distance_to_enemy_aggregator, ignore_index=True)
+
+            self.context_type_models['sos_operational_context']['data'] = self.context_type_models['sos_operational_context']['data'].append({'Seconds Since Last Sent SOS': request_body['secondsSinceLastSOS'], 'Multiplier': calculate_sos_operational_context_mutliplier(request_body['secondsSinceLastSOS'])})
+
+            new_data_row = {}
+            features = self.message_type_models[message_type]['features']
+            cols_to_json = self.message_type_models[message_type]['cols_to_json']
+            for feature in features:
+                if feature in cols_to_json:
+                    new_data_row.update({feature: request_body[cols_to_json[feature]]})
+
+            new_data_row.update({self.message_type_models[message_type]['label']: calculate_raw_score(message_type, request_body)})
+
+            self.message_type_models[message_type]['data'] = self.message_type_models[message_type]['data'].append(new_data_row, ignore_index=True)
+
+            return calculate_score(message_type, request_body)
+        elif request_type == self.DATA:
+            self.export_data()
+            return 1
+
     def write_results(self, request_body):
         current_combination_id = int(request_body['combinationID'])
-        
-        if current_combination_id  < 0 or current_combination_id >= len(self.combinations):
-            return
 
-        print('Current Combination:', current_combination_id)
+        if current_combination_id < 0 or current_combination_id >= len(self.combinations):
+            return
 
         for message_type in self.message_types:
             if self.message_type_models[message_type]['model'] is not None:
@@ -259,11 +343,6 @@ class SLRabbitMQServer(RabbitMQServer):
                 old_mae = float(old_mae)
                 old_mse = float(old_mse)
 
-                print('Number of Runs for {0}: Old:{1}, New: {2}'.format(message_type, num_runs, num_runs+1))
-                print('Mean Absolute Error for {0}:Old: {1}, New: {2}'.format(message_type, old_mae, mae))
-                print('Mean Squared Error for {0}:Old: {1}, New: {2}'.format(message_type, old_mse, mse))
-
-
                 num_runs += 1
 
                 self.message_type_models[message_type]['results'].iat[
@@ -272,7 +351,6 @@ class SLRabbitMQServer(RabbitMQServer):
                     current_combination_id, 5] = round((old_mae + mae) / num_runs, 3)
                 self.message_type_models[message_type]['results'].iat[
                     current_combination_id, 6] = round((old_mse + mse) / num_runs, 3)
-
 
         for context_type in self.context_types:
             if self.context_type_models[context_type]['model'] is not None:
@@ -294,10 +372,6 @@ class SLRabbitMQServer(RabbitMQServer):
                 old_mae = float(old_mae)
                 old_mse = float(old_mse)
 
-                print('Number of Runs for {0}: Old:{1}, New: {2}'.format(context_type, num_runs, num_runs + 1))
-                print('Mean Absolute Error for {0}\nOld: {1}, New: {2}'.format(context_type, old_mae, mae))
-                print('Mean Squared Error for {0}\nOld: {1}, New: {2}'.format(context_type, old_mse, mse))
-
                 num_runs += 1
 
                 self.context_type_models[context_type]['results'].iat[
@@ -316,7 +390,8 @@ class SLRabbitMQServer(RabbitMQServer):
             else:
                 combination_id = int(request_body['combinationID'])
                 if 0 <= combination_id < len(self.combinations):
-                    if self.message_type_models[message_type]['model'] is None or self.message_type_models[message_type]['model'].current_id != combination_id:
+                    if self.message_type_models[message_type]['model'] is None or \
+                            self.message_type_models[message_type]['model'].current_id != combination_id:
                         model = ScikitModel(combination_id, message_type,
                                             self.message_type_models[message_type]['features'],
                                             self.message_type_models[message_type]['label'])
@@ -338,7 +413,8 @@ class SLRabbitMQServer(RabbitMQServer):
             else:
                 combination_id = int(request_body['combinationID'])
                 if 0 <= combination_id < len(self.combinations):
-                    if self.context_type_models[context_type]['model'] is None or self.context_type_models[context_type]['model'].current_id != combination_id:
+                    if self.context_type_models[context_type]['model'] is None or \
+                            self.context_type_models[context_type]['model'].current_id != combination_id:
                         model = ScikitModel(combination_id, context_type,
                                             self.context_type_models[context_type]['features'],
                                             self.context_type_models[context_type]['label'])

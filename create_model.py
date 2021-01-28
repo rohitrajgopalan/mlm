@@ -61,6 +61,7 @@ if not isdir(models_dir):
 if not isdir(results_dir):
     mkdir(results_dir)
 
+
 def save_models(model_name, features, label):
     results = pd.DataFrame(columns=result_cols)
     model_dir = join(models_dir, model_name)
@@ -74,13 +75,13 @@ def save_models(model_name, features, label):
         pickle.dump(pipeline_model, open(file_name, 'wb'))
         method_name, scaling_type, enable_normalization, use_grid_search = combination
         results = results.append({'combination_id': i,
-                                       'regressor': method_name,
-                                       'scaling_type': scaling_type.name,
-                                       'enable_normalization': 'Yes' if enable_normalization else 'No',
-                                       'use_grid_search': 'Yes' if use_grid_search else 'No',
-                                       'num_runs': 0,
-                                       'mae': 0.00000,
-                                       'mse': 0.00000}, ignore_index=True)
+                                  'regressor': method_name,
+                                  'scaling_type': scaling_type.name,
+                                  'enable_normalization': 'Yes' if enable_normalization else 'No',
+                                  'use_grid_search': 'Yes' if use_grid_search else 'No',
+                                  'num_runs': 0,
+                                  'mae': 0.00000,
+                                  'mse': 0.00000}, ignore_index=True)
     results.to_csv(join(results_dir, '{0}.csv'.format(model_name)), index=False)
 
 

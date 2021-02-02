@@ -1,0 +1,13 @@
+combination_id,regressor,pre_processing_type,mae,mse,num_runs
+0,LinearRegression,SCALING,100.0,1.759,460.3
+1,LinearRegression,NORMALIZATION,100.0,25.786,72922.958
+2,LinearRegression,NONE,100.0,1.759,460.3
+3,RandomForest,SCALING,100.0,1.809,426.965
+4,RandomForest,NORMALIZATION,100.0,7.111,12931.354
+5,RandomForest,NONE,100.0,1.76,438.059
+6,ExtraTrees,SCALING,100.0,0.415,66.004
+7,ExtraTrees,NORMALIZATION,100.0,4.625,6254.839
+8,ExtraTrees,NONE,100.0,0.4,38.177
+9,DecisionTree,SCALING,100.0,0.134,4.852
+10,DecisionTree,NORMALIZATION,100.0,1.094,256.474
+11,DecisionTree,NONE,100.0,0.134,4.852

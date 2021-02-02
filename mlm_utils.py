@@ -248,7 +248,7 @@ def make_pipeline(combination):
         pipeline_list.append(('scaler', StandardScaler()))
     elif pre_processing_type == PreProcessingType.NORMALIZATION:
         pipeline_list.append(('normalizer', Normalizer()))
-    method = select_method(choosing_method=method_name, use_grid_search=True, cv=10,
+    method = select_method(choosing_method=method_name, use_grid_search=False, cv=10,
                            enable_normalization=pre_processing_type == PreProcessingType.NORMALIZATION)
     pipeline_list.append(('method', method))
     return Pipeline(pipeline_list)

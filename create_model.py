@@ -5,8 +5,7 @@ from os.path import dirname, realpath, isdir, isfile, join
 import pickle
 import pandas as pd
 
-result_cols = ['combination_id', 'regressor', 'scaling_type', 'enable_normalization', 'use_grid_search', 'num_runs',
-               'mae', 'mse']
+result_cols = ['combination_id', 'regressor', 'pre_processing_type', 'mae', 'mse']
 
 context_types = {
     'sos_operational_context': {
@@ -73,12 +72,10 @@ def save_models(model_name, features, label):
         pipeline_model.fit(X, y)
         file_name = join(model_dir, '{0}.pkl'.format(i))
         pickle.dump(pipeline_model, open(file_name, 'wb'))
-        method_name, scaling_type, enable_normalization, use_grid_search = combination
+        method_name, pre_processing_type = combination
         results = results.append({'combination_id': i,
                                   'regressor': method_name,
-                                  'scaling_type': scaling_type.name,
-                                  'enable_normalization': 'Yes' if enable_normalization else 'No',
-                                  'use_grid_search': 'Yes' if use_grid_search else 'No',
+                                  'pre_processing_type': pre_processing_type.name,
                                   'num_runs': 0,
                                   'mae': 0.00000,
                                   'mse': 0.00000}, ignore_index=True)

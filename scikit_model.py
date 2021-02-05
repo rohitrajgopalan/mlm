@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.metrics import mean_absolute_error, r2_score
 from mlm_utils import *
 import pickle
 
@@ -41,8 +41,8 @@ class ScikitModel:
         if len(self.actual_values) > 0 and len(self.predicted_values) > 0:
             if metric_type in ['mae', 'mean_absolute_error']:
                 return mean_absolute_error(self.actual_values, self.predicted_values)
-            elif metric_type in ['mse', 'mean_squared_error']:
-                return mean_squared_error(self.actual_values, self.predicted_values)
+            elif metric_type in ['r2', 'coefficient_of_determination']:
+                return r2_score(self.actual_values, self.predicted_values)
             else:
                 return -1
         else:

@@ -5,7 +5,7 @@ from os.path import dirname, realpath, isdir, isfile, join
 import pickle
 import pandas as pd
 
-result_cols = ['combination_id', 'regressor', 'pre_processing_type', 'mae', 'mse']
+result_cols = ['combination_id', 'regressor', 'pre_processing_type', 'mae', 'r2']
 
 context_types = {
     'sos_operational_context': {
@@ -78,7 +78,7 @@ def save_models(model_name, features, label):
                                   'pre_processing_type': pre_processing_type.name,
                                   'num_runs': 0,
                                   'mae': 0.00000,
-                                  'mse': 0.00000}, ignore_index=True)
+                                  'r2': 0.00000}, ignore_index=True)
     results.to_csv(join(results_dir, '{0}.csv'.format(model_name)), index=False)
 
 

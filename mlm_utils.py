@@ -13,8 +13,7 @@ import enum
 
 regressors = {'LinearRegression': LinearRegression(n_jobs=-1),
               'DecisionTree': DecisionTreeRegressor(),
-              'RandomForest': RandomForestRegressor(n_jobs=-1),
-              'ExtraTrees': ExtraTreesRegressor(n_jobs=-1)}
+              'RandomForest': RandomForestRegressor(n_jobs=-1)}
 
 
 def load_from_directory(files_dir, cols=[], concat=False, sheet_name='', header_index=0, cols_to_types={}):

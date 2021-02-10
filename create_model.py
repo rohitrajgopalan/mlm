@@ -6,6 +6,8 @@ import pickle
 import pandas as pd
 
 result_cols = ['combination_id', 'regressor', 'pre_processing_type', 'mae', 'r2']
+# result_cols = ['combination_id', 'regressor', 'pre_processing_type', 'use_default_params', 'mae', 'r2']
+
 
 context_types = {
     'sos_operational_context': {
@@ -73,9 +75,11 @@ def save_models(model_name, features, label):
         file_name = join(model_dir, '{0}.pkl'.format(i))
         pickle.dump(pipeline_model, open(file_name, 'wb'))
         method_name, pre_processing_type = combination
+        # method_name, pre_processing_type, use_default_params = combination
         results = results.append({'combination_id': i,
                                   'regressor': method_name,
                                   'pre_processing_type': pre_processing_type.name,
+                                  # 'use_default_params': 'Yes' if use_default_params else 'No',
                                   'num_runs': 0,
                                   'mae': 0.00000,
                                   'r2': 0.00000}, ignore_index=True)

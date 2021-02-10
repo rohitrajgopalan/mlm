@@ -46,49 +46,48 @@ def load_from_directory(files_dir, cols=[], concat=False, sheet_name='', header_
     return pd.concat(df_from_each_file, ignore_index=True) if concat else df_from_each_file
 
 
-def select_method(choosing_method, use_grid_search=True, enable_normalization=False, cv=0):
-    chosen_method = None
-    methods = regressors
-    if choosing_method == 'random':
-        chosen_method = randomly_select_method(methods)
+def select_method(choosing_method, use_default_params=True, model_type=''):
+    if choosing_method == "LinearRegression":
+        return get_linear_regression('default' if use_default_params else model_type)
+    elif choosing_method == "DecisionTree":
+        return get_decision_tree('default' if use_default_params else model_type)
+    elif choosing_method == "RandomForest":
+        return get_random_forest('default' if use_default_params else model_type)
+
+
+def get_linear_regression(model_type):
+    if model_type == "default":
+        return LinearRegression(n_jobs=-1)
     else:
-        for method_name in methods.keys():
-            if method_name.lower() == choosing_method.lower():
-                chosen_method = methods[method_name]
-                break
-    if choosing_method == 'LinearRegression':
-        chosen_method = LinearRegression(normalize=enable_normalization, n_jobs=-1)
-    if use_grid_search:
-        params = get_testable_parameters(chosen_method)
-        return set_up_gridsearch(chosen_method, params, cv)
+        return LinearRegression(n_jobs=-1, normalize=True)
+
+
+def get_random_forest(model_type):
+    if model_type == "sos":
+        return RandomForestRegressor(n_jobs=-1, bootstrap=True, max_depth=32, max_features='auto', n_estimators=2000)
+    elif model_type in ["tactical_graphics", "text_messages"]:
+        return RandomForestRegressor(n_jobs=-1, bootstrap=True, max_depth=16, max_features='auto', n_estimators=2000)
+    elif model_type == "sos_operational_context":
+        return RandomForestRegressor(n_jobs=-1, bootstrap=False, max_depth=2, max_features='auto', n_estimators=100)
     else:
-        return chosen_method
+        return RandomForestRegressor(n_jobs=-1)
 
 
-def randomly_select_method(methods):
-    key = random.choice(list(methods.keys()))
-    return methods[key]
-
-
-def set_up_gridsearch(method, params, cv):
-    if not bool(params):
-        return GridSearchCV(method, param_grid=params, cv=cv,
-                            scoring='neg_mean_squared_error',
-                            verbose=0, n_jobs=-1, refit=True)
+def get_decision_tree(model_type):
+    if model_type == "sos":
+        return DecisionTreeRegressor(criterion='mse', max_depth=8, max_features='auto', max_leaf_nodes=100,
+                                     min_samples_leaf=20, min_samples_split=10, splitter='best')
+    elif model_type == "tactical_graphics":
+        return DecisionTreeRegressor(criterion='mae', max_depth=6, max_features='auto', max_leaf_nodes=20,
+                                     min_samples_leaf=20, min_samples_split=10, splitter='best')
+    elif model_type == "text_messages":
+        return DecisionTreeRegressor(criterion='mse', max_depth=6, max_features='auto', max_leaf_nodes=20,
+                                     min_samples_leaf=20, min_samples_split=10, splitter='best')
+    elif model_type == "sos_operational_context":
+        return DecisionTreeRegressor(criterion='mse', max_depth=2, max_features='auto', max_leaf_nodes=5,
+                                     min_samples_leaf=20, min_samples_split=10, splitter='best')
     else:
-        return method
-
-
-def get_testable_parameters(method_name):
-    if method_name in ['ExtraTrees', 'RandomForest']:
-        return {'max_features': ['auto', 'log2', 'sqrt'],
-                'criterion': ['mse', 'mae']}
-    elif method_name == 'DecisionTree':
-        return {'max_features': ['auto', 'log2', 'sqrt'],
-                'criterion': ['mse', 'mae', 'friedman_mse'],
-                'splitter': {'best', 'random'}}
-    else:
-        return {}
+        return DecisionTreeRegressor()
 
 
 class PreProcessingType(enum.Enum):
@@ -167,6 +166,8 @@ def get_scikit_model_combinations():
     for method_name in regressors:
         for pre_processing_type in PreProcessingType.all():
             combinations.append((method_name, pre_processing_type))
+            # for use_default_params in [True, False]:
+            #     combinations.append((method_name, pre_processing_type, use_default_params))
     return combinations
 
 
@@ -240,15 +241,16 @@ def load_training_data(cols, sheet_name):
     return load_from_directory(train_data_files_dir, cols, True, sheet_name)
 
 
-def make_pipeline(combination):
+def make_pipeline(combination, model_type=''):
     pipeline_list = []
+    # method_name, pre_processing_type, use_default_params = combination
     method_name, pre_processing_type = combination
     if pre_processing_type == PreProcessingType.SCALING:
         pipeline_list.append(('scaler', StandardScaler()))
     elif pre_processing_type == PreProcessingType.NORMALIZATION:
         pipeline_list.append(('normalizer', Normalizer()))
-    method = select_method(choosing_method=method_name, use_grid_search=False, cv=10,
-                           enable_normalization=pre_processing_type == PreProcessingType.NORMALIZATION)
+    # method = select_method(choosing_method=method_name, use_default_params=use_default_params, model_type=model_type)
+    method = select_method(method_name, True, model_type)
     pipeline_list.append(('method', method))
     return Pipeline(pipeline_list)
 

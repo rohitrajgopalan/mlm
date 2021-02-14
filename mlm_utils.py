@@ -58,8 +58,10 @@ def select_method(choosing_method, use_default_params=True, model_type=''):
 def get_linear_regression(model_type):
     if model_type == "default":
         return LinearRegression(n_jobs=-1)
+    elif model_type in ["blue_spots", "sos_operational_context", "sos", "tactical_graphics", "text_messages"]:
+        return LinearRegression(n_jobs=-1, normalize=True, fit_intercept=True)
     else:
-        return LinearRegression(n_jobs=-1, normalize=True)
+        return LinearRegression(n_jobs=-1, normalize=True, fit_intercept=False)
 
 
 def get_random_forest(model_type):
@@ -67,8 +69,12 @@ def get_random_forest(model_type):
         return RandomForestRegressor(n_jobs=-1, bootstrap=True, max_depth=32, max_features='auto', n_estimators=2000)
     elif model_type in ["tactical_graphics", "text_messages"]:
         return RandomForestRegressor(n_jobs=-1, bootstrap=True, max_depth=16, max_features='auto', n_estimators=2000)
-    elif model_type == "sos_operational_context":
+    elif model_type in ["sos_operational_context", "distance_to_enemy_context", "distance_to_enemy_aggregator"]:
         return RandomForestRegressor(n_jobs=-1, bootstrap=False, max_depth=2, max_features='auto', n_estimators=100)
+    elif model_type == "blue_spots":
+        return RandomForestRegressor(n_jobs=-1, bootstrap=True, max_depth=16, max_features='auto', n_estimators=100)
+    elif model_type == "red_spots":
+        return RandomForestRegressor(n_jobs=-1, bootstrap=True, max_depth=50, max_features='auto', n_estimators=400)
     else:
         return RandomForestRegressor(n_jobs=-1)
 
@@ -77,14 +83,17 @@ def get_decision_tree(model_type):
     if model_type == "sos":
         return DecisionTreeRegressor(criterion='mse', max_depth=8, max_features='auto', max_leaf_nodes=100,
                                      min_samples_leaf=20, min_samples_split=10, splitter='best')
-    elif model_type == "tactical_graphics":
+    elif model_type in ["tactical_graphics", "blue_spots"]:
         return DecisionTreeRegressor(criterion='mae', max_depth=6, max_features='auto', max_leaf_nodes=20,
                                      min_samples_leaf=20, min_samples_split=10, splitter='best')
     elif model_type == "text_messages":
         return DecisionTreeRegressor(criterion='mse', max_depth=6, max_features='auto', max_leaf_nodes=20,
                                      min_samples_leaf=20, min_samples_split=10, splitter='best')
-    elif model_type == "sos_operational_context":
+    elif model_type in in ["sos_operational_context", "distance_to_enemy_context", "distance_to_enemy_aggregator"]:
         return DecisionTreeRegressor(criterion='mse', max_depth=2, max_features='auto', max_leaf_nodes=5,
+                                     min_samples_leaf=20, min_samples_split=10, splitter='best')
+    elif model_type == "red_spots":
+        return DecisionTreeRegressor(criterion='mae', max_depth=2, max_features='auto', max_leaf_nodes=5,
                                      min_samples_leaf=20, min_samples_split=10, splitter='best')
     else:
         return DecisionTreeRegressor()

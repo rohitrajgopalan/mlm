@@ -89,7 +89,7 @@ def get_decision_tree(model_type):
     elif model_type == "text_messages":
         return DecisionTreeRegressor(criterion='mse', max_depth=6, max_features='auto', max_leaf_nodes=20,
                                      min_samples_leaf=20, min_samples_split=10, splitter='best')
-    elif model_type in in ["sos_operational_context", "distance_to_enemy_context", "distance_to_enemy_aggregator"]:
+    elif model_type in ["sos_operational_context", "distance_to_enemy_context", "distance_to_enemy_aggregator"]:
         return DecisionTreeRegressor(criterion='mse', max_depth=2, max_features='auto', max_leaf_nodes=5,
                                      min_samples_leaf=20, min_samples_split=10, splitter='best')
     elif model_type == "red_spots":

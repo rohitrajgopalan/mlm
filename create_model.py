@@ -5,7 +5,8 @@ from os.path import dirname, realpath, isdir, isfile, join
 import pickle
 import pandas as pd
 
-result_cols = ['combination_id', 'regressor', 'pre_processing_type', 'mae', 'r2']
+result_cols = ['combination_id', 'regressor', 'pre_processing_type', 'mae']
+# result_cols = ['combination_id', 'regressor', 'pre_processing_type', 'mae', 'r2']
 # result_cols = ['combination_id', 'regressor', 'pre_processing_type', 'use_default_params', 'mae', 'r2']
 
 
@@ -74,20 +75,21 @@ def save_models(model_name, features, label):
         pipeline_model.fit(X, y)
         file_name = join(model_dir, '{0}.pkl'.format(i))
         pickle.dump(pipeline_model, open(file_name, 'wb'))
-        method_name, pre_processing_type = combination
-        # method_name, pre_processing_type, use_default_params = combination
+        #method_name, pre_processing_type = combination
+        method_name, pre_processing_type, use_default_params = combination
         results = results.append({'combination_id': i,
                                   'regressor': method_name,
                                   'pre_processing_type': pre_processing_type.name,
-                                  # 'use_default_params': 'Yes' if use_default_params else 'No',
+                                  'use_default_params': 'Yes' if use_default_params else 'No',
                                   'num_runs': 0,
-                                  'mae': 0.00000,
-                                  'r2': 0.00000}, ignore_index=True)
+                                  'mae': 0.00000
+                                  #,'r2': 0.00000
+                                  }, ignore_index=True)
     results.to_csv(join(results_dir, '{0}.csv'.format(model_name)), index=False)
 
-
-for context_type in context_types:
-    save_models(context_type, context_types[context_type]['features'], context_types[context_type]['label'])
-
-for message_type in message_types:
-    save_models(message_type, message_types[message_type]['features'], message_types[message_type]['label'])
+#
+# for context_type in context_types:
+#     save_models(context_type, context_types[context_type]['features'], context_types[context_type]['label'])
+#
+# for message_type in message_types:
+#     save_models(message_type, message_types[message_type]['features'], message_types[message_type]['label'])

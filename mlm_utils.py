@@ -89,7 +89,7 @@ def get_decision_tree(model_type):
     elif model_type == "text_messages":
         return DecisionTreeRegressor(criterion='mse', max_depth=6, max_features='auto', max_leaf_nodes=20,
                                      min_samples_leaf=20, min_samples_split=10, splitter='best')
-    elif model_type in in ["sos_operational_context", "distance_to_enemy_context", "distance_to_enemy_aggregator"]:
+    elif model_type in ["sos_operational_context", "distance_to_enemy_context", "distance_to_enemy_aggregator"]:
         return DecisionTreeRegressor(criterion='mse', max_depth=2, max_features='auto', max_leaf_nodes=5,
                                      min_samples_leaf=20, min_samples_split=10, splitter='best')
     elif model_type == "red_spots":
@@ -174,9 +174,9 @@ def get_scikit_model_combinations():
     combinations = []
     for method_name in regressors:
         for pre_processing_type in PreProcessingType.all():
-            combinations.append((method_name, pre_processing_type))
-            # for use_default_params in [True, False]:
-            #     combinations.append((method_name, pre_processing_type, use_default_params))
+            # combinations.append((method_name, pre_processing_type))
+            for use_default_params in [True, False]:
+                combinations.append((method_name, pre_processing_type, use_default_params))
     return combinations
 
 
@@ -252,14 +252,14 @@ def load_training_data(cols, sheet_name):
 
 def make_pipeline(combination, model_type=''):
     pipeline_list = []
-    # method_name, pre_processing_type, use_default_params = combination
-    method_name, pre_processing_type = combination
+    method_name, pre_processing_type, use_default_params = combination
+    #method_name, pre_processing_type = combination
     if pre_processing_type == PreProcessingType.SCALING:
         pipeline_list.append(('scaler', StandardScaler()))
     elif pre_processing_type == PreProcessingType.NORMALIZATION:
         pipeline_list.append(('normalizer', Normalizer()))
     # method = select_method(choosing_method=method_name, use_default_params=use_default_params, model_type=model_type)
-    method = select_method(method_name, True, model_type)
+    method = select_method(method_name, use_default_params, model_type)
     pipeline_list.append(('method', method))
     return Pipeline(pipeline_list)
 

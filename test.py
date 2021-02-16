@@ -5,7 +5,7 @@ from os.path import isdir, join, dirname, realpath
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import cross_validate
-from mlm_utils import train_data, get_scikit_model_combinations_with_polynomials, make_pipeline
+from mlm_utils import train_data, get_scikit_model_combinations, make_pipeline
 
 
 def test_on_regressors(sheet_name, features, label):
@@ -17,7 +17,7 @@ def test_on_regressors(sheet_name, features, label):
                                        'test_mse'])
     X, y, = train_data(sheet_name, features, label)
     # combinations = get_scikit_model_combinations_with_polynomials(len(features))
-    combinations = get_scikit_model_combinations_with_polynomials()
+    combinations = get_scikit_model_combinations()
     for combination in combinations:
         method_name, degree, scaling_type, enable_normalization, use_grid_search = combination
         pipeline = make_pipeline(combination)

@@ -140,36 +140,6 @@ def calculate_raw_score(message_type, args):
             args['Is Affected'] if 'Is Affected' in args else args['isAffected'])
 
 
-def calculate_raw_multiplier(context_type, args):
-    if 'distance_to_enemy' in context_type:
-        if 'nearestValues' in args:
-            nearest_values = args['nearestValues']
-        else:
-            nearest_values = np.zeros(5)
-            for i in range(5):
-                nearest_values[i] = args['#{0} Nearest'.format(i + 1)]
-        if context_type == 'distance_to_enemy_context':
-            return calculate_distance_to_enemy_multiplier(nearest_values)
-        else:
-            return calculate_distance_to_enemy_aggregator(nearest_values)
-    elif context_type == 'sos_operational_context':
-        return calculate_sos_operational_context_mutliplier(args['Seconds Since Last Sent SOS']
-                                                            if 'Seconds Since Last Sent SOS' in args
-                                                            else args['secondsSinceLastSOS'])
-
-
-def calculate_score(message_type, args):
-    raw_score = calculate_raw_score(message_type, args)
-    if message_type in ['blue_spots', 'tactical_graphics', 'text_messages']:
-        return raw_score * calculate_raw_multiplier('distance_to_enemy_context', args) * calculate_raw_multiplier(
-            'sos_operational_context', args)
-    elif message_type == 'red_spots':
-        return raw_score * calculate_raw_multiplier('distance_to_enemy_aggregator', args) * calculate_raw_multiplier(
-            'sos_operational_context', args)
-    else:
-        return raw_score
-
-
 def get_scikit_model_combinations():
     combinations = []
     for method_name in regressors:

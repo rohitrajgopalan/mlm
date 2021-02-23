@@ -87,9 +87,9 @@ def save_models(model_name, features, label):
                                   }, ignore_index=True)
     results.to_csv(join(results_dir, '{0}.csv'.format(model_name)), index=False)
 
-#
-# for context_type in context_types:
-#     save_models(context_type, context_types[context_type]['features'], context_types[context_type]['label'])
-#
-# for message_type in message_types:
-#     save_models(message_type, message_types[message_type]['features'], message_types[message_type]['label'])
+
+for context_type in context_types:
+    save_models(context_type, context_types[context_type]['features'], context_types[context_type]['label'])
+
+for message_type in message_types:
+    save_models(message_type, message_types[message_type]['features'], message_types[message_type]['label'])

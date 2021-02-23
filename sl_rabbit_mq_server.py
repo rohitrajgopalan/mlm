@@ -153,10 +153,11 @@ class SLRabbitMQServer(RabbitMQServer):
         self.writing_results = False
         self.writing_data = False
 
-        # for model_type in self.models:
-        #     self.models[model_type].update({'results': pd.read_csv(join(self.results_dir, '{0}.csv'.format(model_type)),
-        #                                                            index_col=self.result_cols[0])})
-
+        for model_type in self.models:
+            self.models[model_type].update({'data': pd.DataFrame(columns=self.models[model_type]['cols']), 'data_tuples': []})
+            datasets_dir_model_type = join(self.datasets_dir, model_type)
+            if not isdir(datasets_dir_model_type):
+                mkdir(datasets_dir_model_type)
 
     def setup_data(self):
         if not isdir(self.datasets_dir):

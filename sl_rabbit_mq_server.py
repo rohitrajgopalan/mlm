@@ -15,10 +15,7 @@ class SLRabbitMQServer(RabbitMQServer):
     message_types = ['text_messages', 'tactical_graphics', 'sos', 'blue_spots', 'red_spots']
     context_types = ['sos_operational_context', 'distance_to_enemy_context', 'distance_to_enemy_aggregator']
 
-    result_cols = ['combination_id', 'regressor', 'pre_processing_type', 'use_default_params', 'mae']
-    # result_cols = ['combination_id', 'regressor', 'pre_processing_type', 'mae', 'r2']
-    # result_cols = ['combination_id', 'regressor', 'pre_processing_type', 'use_default_params', 'mae', 'r2']
-
+    result_cols = ['combination_id', 'regressor', 'pre_processing_type', 'use_default_params', 'num_runs', 'mae']
     results_dir = join(dirname(realpath('__file__')), 'results')
     datasets_dir = join(dirname(realpath('__file__')), 'datasets')
 
@@ -152,37 +149,43 @@ class SLRabbitMQServer(RabbitMQServer):
         self.combinations = get_scikit_model_combinations()
         self.writing_results = False
         self.writing_data = False
-
+        self.num_runs_index = self.result_cols.index("num_runs") - 1
+        self.mae_index = self.result_cols.index("mae") - 1
         for model_type in self.models:
-            self.models[model_type].update({'data': pd.DataFrame(columns=self.models[model_type]['cols']), 'data_tuples': []})
-            datasets_dir_model_type = join(self.datasets_dir, model_type)
-            if not isdir(datasets_dir_model_type):
-                mkdir(datasets_dir_model_type)
+            self.models[model_type].update({'results': pd.read_csv(
+                join(self.results_dir, '{0}.csv'.format(model_type)), index_col=self.result_cols[0])})
+        self.setup_data()
 
     def setup_data(self):
         if not isdir(self.datasets_dir):
             mkdir(self.datasets_dir)
 
         for model_type in self.models:
-            self.models[model_type].update({'data': pd.DataFrame(columns=self.models[model_type]['cols']), 'data_tuples': []})
+            self.models[model_type].update(
+                {'data': pd.DataFrame(columns=self.models[model_type]['cols']), 'data_tuples': []})
             datasets_dir_model_type = join(self.datasets_dir, model_type)
             if not isdir(datasets_dir_model_type):
                 mkdir(datasets_dir_model_type)
 
     def export_data(self):
         for model_type in self.models:
-            self.models[model_type]['data'].to_csv(join(self.datasets_dir, model_type,
-                     '{0}_{1}.csv'.format(model_type, datetime.now().strftime("%Y%m%d%H%M%S"))), index=False)
+            if len(self.models[model_type]['data_tuples']) > 0:
+                self.models[model_type]['data'].to_csv(join(self.datasets_dir, model_type,
+                                                            '{0}_{1}.csv'.format(model_type,
+                                                                                 datetime.now().strftime("%Y%m%d%H%M%S"))),
+                                                       index=False)
 
     def _get_reply(self, request):
         request_body = request['requestBody']
         request_type = request['requestType']
 
+        print(request_body)
+
         if request_type == self.COST:
             self.writing_results = False
             self.writing_data = False
+
             message_type = request_body['messageType'].lower()
-            # try:
             new_data_row = {}
             features = self.models[message_type]['features']
             cols_to_json = self.models[message_type]['cols_to_json']
@@ -202,38 +205,48 @@ class SLRabbitMQServer(RabbitMQServer):
             if message_type == 'sos':
                 return predicted_score
             else:
-                actual_sos_multiplier = calculate_sos_operational_context_mutliplier(request_body['secondsSinceLastSOS'])
-                predicted_sos_multiplier = self.models['sos_operational_context']['model'].predict(np.array([request_body['secondsSinceLastSOS']]).reshape(-1,1))[0]
+                doe_multiplier = 1
+                sos_multiplier = 1
 
-                self.models['sos_operational_context']['actual_values'].append(actual_sos_multiplier)
-                self.models['sos_operational_context']['predicted_values'].append(predicted_sos_multiplier)
+                seconds_since_last_sent_sos = request_body['secondsSinceLastSOS']
+                if seconds_since_last_sent_sos != 1e6:
+                    actual_sos_multiplier = calculate_sos_operational_context_mutliplier(
+                        seconds_since_last_sent_sos)
+                    predicted_sos_multiplier = self.models['sos_operational_context']['model'].predict(
+                        np.array([seconds_since_last_sent_sos]).reshape(-1, 1))[0]
+                    self.models['sos_operational_context']['actual_values'].append(actual_sos_multiplier)
+                    self.models['sos_operational_context']['predicted_values'].append(predicted_sos_multiplier)
+                    sos_multiplier = predicted_sos_multiplier
 
                 nearest_values = request_body['nearestValues']
                 nearest_values = np.array(nearest_values)
                 nearest_values = np.sort(nearest_values)
                 nearest_values = nearest_values[:5]
-                new_data_row = {}
-                for i in range(5):
-                    new_data_row.update({'#{0} Nearest'.format(i + 1): nearest_values[i]})
 
-                if message_type == 'red_spots':
-                    actual_aggregate_multiplier = calculate_distance_to_enemy_aggregator(nearest_values)
-                    predicted_aggregate_multiplier = self.models['distance_to_enemy_aggregator']['model'].predict(nearest_values.reshape(-1, 5))[0]
+                if 1e6 not in nearest_values:
+                    new_data_row = {}
+                    for i in range(5):
+                        new_data_row.update({'#{0} Nearest'.format(i + 1): nearest_values[i]})
+                    if message_type == 'red_spots':
+                        actual_aggregate_multiplier = calculate_distance_to_enemy_aggregator(nearest_values)
+                        predicted_aggregate_multiplier = \
+                            self.models['distance_to_enemy_aggregator']['model'].predict(nearest_values.reshape(-1, 5))[
+                                0]
+                        self.models['distance_to_enemy_aggregator']['actual_values'].append(actual_aggregate_multiplier)
+                        self.models['distance_to_enemy_aggregator']['predicted_values'].append(
+                            predicted_aggregate_multiplier)
+                        doe_multiplier = predicted_aggregate_multiplier
+                    else:
+                        actual_context_multiplier = calculate_distance_to_enemy_aggregator(nearest_values)
+                        predicted_context_multiplier = \
+                            self.models['distance_to_enemy_context']['model'].predict(nearest_values.reshape(-1, 5))[0]
 
-                    self.models['distance_to_enemy_aggregator']['actual_values'].append(actual_aggregate_multiplier)
-                    self.models['distance_to_enemy_aggregator']['predicted_values'].append(predicted_aggregate_multiplier)
+                        self.models['distance_to_enemy_context']['actual_values'].append(actual_context_multiplier)
+                        self.models['distance_to_enemy_context']['predicted_values'].append(
+                            predicted_context_multiplier)
+                        doe_multiplier = predicted_context_multiplier
 
-                    return predicted_score * predicted_sos_multiplier * predicted_aggregate_multiplier
-                else:
-                    actual_context_multiplier = calculate_distance_to_enemy_aggregator(nearest_values)
-                    predicted_context_multiplier = self.models['distance_to_enemy_context']['model'].predict(nearest_values.reshape(-1, 5))[0]
-
-                    self.models['distance_to_enemy_context']['actual_values'].append(actual_context_multiplier)
-                    self.models['distance_to_enemy_context']['predicted_values'].append(predicted_context_multiplier)
-
-                    return predicted_score * predicted_sos_multiplier * predicted_context_multiplier
-            # except:
-            #     return 0
+                return predicted_score * sos_multiplier * doe_multiplier
         elif request_type == self.SETUP:
             self.writing_results = False
             self.writing_data = False
@@ -247,10 +260,14 @@ class SLRabbitMQServer(RabbitMQServer):
             combination_id = int(request_body['combinationID'])
             if 0 <= combination_id < len(self.combinations):
                 for model_type in self.models:
-                    self.models[model_type].update({'results': pd.read_csv(join(self.results_dir, '{0}.csv'.format(model_type)), index_col=self.result_cols[0])})
-                    if self.models[model_type]['current_combination'] == -1 or self.models[model_type]['current_combination'] != combination_id:
-                        model_name = join(dirname(realpath('__file__')), 'models', model_type,'{0}.pkl'.format(combination_id))
-                        self.models[model_type].update({'model': pickle.load(open(model_name, 'rb')), 'current_combination': combination_id})
+                    self.models[model_type].update({'results': pd.read_csv(
+                        join(self.results_dir, '{0}.csv'.format(model_type)), index_col=self.result_cols[0])})
+                    if self.models[model_type]['current_combination'] == -1 or self.models[model_type][
+                        'current_combination'] != combination_id:
+                        model_name = join(dirname(realpath('__file__')), 'models', model_type,
+                                          '{0}.pkl'.format(combination_id))
+                        self.models[model_type].update(
+                            {'model': pickle.load(open(model_name, 'rb')), 'current_combination': combination_id})
                         self.models[model_type].update({'actual_values': [], 'predicted_values': []})
                 return 1
             else:
@@ -263,57 +280,65 @@ class SLRabbitMQServer(RabbitMQServer):
             return 1
 
         elif request_type == self.TRAIN:
+
             message_type = request_body['messageType'].lower()
+
             nearest_values = request_body['nearestValues']
             nearest_values = np.array(nearest_values)
             nearest_values = np.sort(nearest_values)
-            nearest_values = nearest_values[:5]
 
-            new_data_row_distance_to_enemy = {}
-            new_data_row_distance_to_enemy_context = new_data_row_distance_to_enemy
-            new_data_row_distance_to_enemy_aggregator = new_data_row_distance_to_enemy
+            doe_multiplier = 1
+            sos_multiplier = 1
 
-            for i in range(5):
-                new_data_row_distance_to_enemy.update({'#{0} Nearest'.format(i + 1): nearest_values[i]})
-            distance_to_enemy_multiplier = calculate_distance_to_enemy_multiplier(nearest_values)
-            new_data_row_distance_to_enemy_context.update(
-                {'Multiplier': distance_to_enemy_multiplier})
-            distance_to_enemy_aggregator = calculate_distance_to_enemy_aggregator(nearest_values)
-            new_data_row_distance_to_enemy_aggregator.update(
-                {'Multiplier': distance_to_enemy_aggregator})
+            if 1e6 not in nearest_values:
+                nearest_values = nearest_values[:5]
+                new_data_row_distance_to_enemy = {}
 
-            distance_to_enemy_context_tuple = (
-                nearest_values[0], nearest_values[1], nearest_values[2], nearest_values[3], nearest_values[4],
-                distance_to_enemy_multiplier)
-            if distance_to_enemy_context_tuple not in self.models['distance_to_enemy_context'][
-                'data_tuples']:
-                self.models['distance_to_enemy_context']['data'] = \
-                    self.models['distance_to_enemy_context']['data'].append(
-                        new_data_row_distance_to_enemy_context,
-                        ignore_index=True)
-                self.models['distance_to_enemy_context']['data_tuples'].append(
-                    distance_to_enemy_context_tuple)
+                for i in range(5):
+                    new_data_row_distance_to_enemy.update({'#{0} Nearest'.format(i + 1): nearest_values[i]})
 
-            distance_to_enemy_aggregator_tuple = (
-                nearest_values[0], nearest_values[1], nearest_values[2], nearest_values[3], nearest_values[4],
-                distance_to_enemy_aggregator)
-            if distance_to_enemy_aggregator_tuple not in self.models['distance_to_enemy_aggregator'][
-                'data_tuples']:
-                self.models['distance_to_enemy_aggregator']['data'] = \
-                    self.models['distance_to_enemy_aggregator']['data'].append(
-                        new_data_row_distance_to_enemy_aggregator, ignore_index=True)
-                self.models['distance_to_enemy_aggregator'][
-                    'data_tuples'].append(distance_to_enemy_aggregator_tuple)
+                if message_type == 'red_spots':
+                    distance_to_enemy_aggregator = calculate_distance_to_enemy_aggregator(nearest_values)
+                    new_data_row_distance_to_enemy.update({'Multiplier': distance_to_enemy_aggregator})
+                    distance_to_enemy_aggregator_tuple = (
+                        nearest_values[0], nearest_values[1], nearest_values[2], nearest_values[3], nearest_values[4],
+                        distance_to_enemy_aggregator)
+                    doe_multiplier = distance_to_enemy_aggregator
+                    if distance_to_enemy_aggregator_tuple not in self.models['distance_to_enemy_aggregator'][
+                        'data_tuples']:
+                        self.models['distance_to_enemy_aggregator']['data'] = \
+                            self.models['distance_to_enemy_aggregator']['data'].append(
+                                new_data_row_distance_to_enemy, ignore_index=True)
+                        self.models['distance_to_enemy_aggregator'][
+                            'data_tuples'].append(distance_to_enemy_aggregator_tuple)
+                else:
+                    distance_to_enemy_multiplier = calculate_distance_to_enemy_multiplier(nearest_values)
+                    new_data_row_distance_to_enemy.update({'Multiplier': distance_to_enemy_multiplier})
+                    distance_to_enemy_context_tuple = (
+                        nearest_values[0], nearest_values[1], nearest_values[2], nearest_values[3], nearest_values[4],
+                        distance_to_enemy_multiplier)
+                    doe_multiplier = distance_to_enemy_multiplier
+                    if distance_to_enemy_context_tuple not in self.models['distance_to_enemy_context'][
+                        'data_tuples']:
+                        self.models['distance_to_enemy_context']['data'] = \
+                            self.models['distance_to_enemy_context']['data'].append(
+                                new_data_row_distance_to_enemy,
+                                ignore_index=True)
+                        self.models['distance_to_enemy_context']['data_tuples'].append(
+                            distance_to_enemy_context_tuple)
 
-            predicted_sos_multiplier = calculate_sos_operational_context_mutliplier(request_body['secondsSinceLastSOS'])
-            sos_operational_context_tuple = (request_body['secondsSinceLastSOS'], predicted_sos_multiplier)
-            if sos_operational_context_tuple not in self.models['sos_operational_context']['data_tuples']:
-                self.models['sos_operational_context']['data'] = \
-                    self.models['sos_operational_context']['data'].append(
-                        {'Seconds Since Last Sent SOS': request_body['secondsSinceLastSOS'],
-                         'Multiplier': predicted_sos_multiplier},
-                        ignore_index=True)
-                self.models['sos_operational_context']['data_tuples'].append(sos_operational_context_tuple)
+            seconds_since_last_sos_ = request_body['secondsSinceLastSOS']
+            if seconds_since_last_sos_ != 1e6:
+                predicted_sos_multiplier = calculate_sos_operational_context_mutliplier(seconds_since_last_sos_)
+                sos_operational_context_tuple = (seconds_since_last_sos_, predicted_sos_multiplier)
+                sos_multiplier = predicted_sos_multiplier
+                if sos_operational_context_tuple not in self.models['sos_operational_context']['data_tuples']:
+                    self.models['sos_operational_context']['data'] = \
+                        self.models['sos_operational_context']['data'].append(
+                            {'Seconds Since Last Sent SOS': seconds_since_last_sos_,
+                             'Multiplier': predicted_sos_multiplier},
+                            ignore_index=True)
+                    self.models['sos_operational_context']['data_tuples'].append(sos_operational_context_tuple)
 
             new_data_row = {}
             new_data_tuple_list = []
@@ -336,12 +361,11 @@ class SLRabbitMQServer(RabbitMQServer):
                     new_data_row, ignore_index=True)
                 self.models[message_type]['data_tuples'].append(new_data_tuple)
 
-            if message_type in ['blue_spots', 'tactical_graphics', 'text_messages']:
-                return raw_message_score * predicted_sos_multiplier * distance_to_enemy_multiplier
-            elif message_type == 'red_spots':
-                return raw_message_score * predicted_sos_multiplier * distance_to_enemy_aggregator
-            else:
+            if message_type == 'sos':
                 return raw_message_score
+            else:
+                return raw_message_score * sos_multiplier * doe_multiplier
+
         elif request_type == self.DATA:
             if not self.writing_data:
                 self.writing_data = True
@@ -358,16 +382,16 @@ class SLRabbitMQServer(RabbitMQServer):
             if len(actual_values) > 0 and len(predicted_values) > 0:
                 mae = mean_absolute_error(actual_values, predicted_values)
 
-                num_runs = int(self.models[model_type]['results'].iat[current_combination, 2])
-                old_mae = float(self.models[model_type]['results'].iat[current_combination, 3])
+                num_runs = int(self.models[model_type]['results'].iat[current_combination, self.num_runs_index])
+                old_mae = float(self.models[model_type]['results'].iat[current_combination, self.mae_index])
 
                 num_runs += 1
 
-                self.models[model_type]['results'].iat[current_combination, 2] = num_runs
-                self.models[model_type]['results'].iat[current_combination, 3] = round((old_mae+mae)/num_runs, 3)
+                self.models[model_type]['results'].iat[current_combination, self.num_runs_index] = num_runs
+                self.models[model_type]['results'].iat[current_combination, self.mae_index] = round(
+                    (old_mae + mae) / num_runs, 3)
 
             self.models[model_type]['results'].to_csv(join(self.results_dir, '{0}.csv'.format(model_type)))
-
 
 
 # Before running the server, pull the RabbitMQ docker image:

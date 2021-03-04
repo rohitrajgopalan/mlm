@@ -2,20 +2,18 @@ import json
 import numpy as np
 import pandas as pd
 import pickle
+import math
 from os.path import join, realpath, dirname, isfile, isdir
 from os import mkdir
 from datetime import datetime
-from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_absolute_error, r2_score
 
 from rabbit_mq_server import RabbitMQServer
 from mlm_utils import *
 
 
 class SLRabbitMQServer(RabbitMQServer):
-    message_types = ['text_messages', 'tactical_graphics', 'sos', 'blue_spots', 'red_spots']
-    context_types = ['sos_operational_context', 'distance_to_enemy_context', 'distance_to_enemy_aggregator']
-
-    result_cols = ['combination_id', 'regressor', 'pre_processing_type', 'use_default_params', 'num_runs', 'mae']
+    result_cols = ['combination_id', 'regressor', 'pre_processing_type', 'use_default_params', 'num_runs', 'mae', 'r2']
     results_dir = join(dirname(realpath('__file__')), 'results')
     datasets_dir = join(dirname(realpath('__file__')), 'datasets')
 
@@ -151,6 +149,7 @@ class SLRabbitMQServer(RabbitMQServer):
         self.writing_data = False
         self.num_runs_index = self.result_cols.index("num_runs") - 1
         self.mae_index = self.result_cols.index("mae") - 1
+        self.r2_index = self.result_cols.index("r2")-1
         for model_type in self.models:
             self.models[model_type].update({'results': pd.read_csv(
                 join(self.results_dir, '{0}.csv'.format(model_type)), index_col=self.result_cols[0])})
@@ -257,24 +256,40 @@ class SLRabbitMQServer(RabbitMQServer):
             self.writing_results = False
             self.writing_data = False
 
-            combination_id = int(request_body['combinationID'])
-            if 0 <= combination_id < len(self.combinations):
+            if int(request_body['useBest']) == 1:
                 for model_type in self.models:
-                    self.models[model_type].update({'results': pd.read_csv(
-                        join(self.results_dir, '{0}.csv'.format(model_type)), index_col=self.result_cols[0])})
-                    if self.models[model_type]['current_combination'] == -1 or self.models[model_type][
-                        'current_combination'] != combination_id:
-                        model_name = join(dirname(realpath('__file__')), 'models', model_type,
-                                          '{0}.pkl'.format(combination_id))
-                        self.models[model_type].update(
-                            {'model': pickle.load(open(model_name, 'rb')), 'current_combination': combination_id})
-                        self.models[model_type].update({'actual_values': [], 'predicted_values': []})
+                    results = self.models[model_type]['results']
+                    results_mae = results[results['mae'] == results['mae'].min()]
+                    best_based_on_mae = np.array(results_mae['combination_id'])
+                    if best_based_on_mae.size == 1:
+                        best_combinationID = best_based_on_mae[0]
+                    else:
+                        results_r2 = results_mae[math.fabs(results_mae['r2']) == math.fabs(results_mae['r2'].max())]
+                        best_based_on_r2 = np.array(results_r2['combination_id'])
+                        best_combinationID = best_based_on_r2[0]
+                    model_name = join(dirname(realpath('__file__')), 'models', model_type,
+                                      '{0}.pkl'.format(best_combinationID))
+                    self.models[model_type].update(
+                        {'model': pickle.load(open(model_name, 'rb')), 'current_combination': best_combinationID})
+                    self.models[model_type].update({'actual_values': [], 'predicted_values': []})
                 return 1
             else:
-                return 0
+                combination_id = int(request_body['combinationID'])
+                if 0 <= combination_id < len(self.combinations):
+                    for model_type in self.models:
+                        if self.models[model_type]['current_combination'] == -1 or self.models[model_type][
+                            'current_combination'] != combination_id:
+                            model_name = join(dirname(realpath('__file__')), 'models', model_type,
+                                              '{0}.pkl'.format(combination_id))
+                            self.models[model_type].update(
+                                {'model': pickle.load(open(model_name, 'rb')), 'current_combination': combination_id})
+                            self.models[model_type].update({'actual_values': [], 'predicted_values': []})
+                    return 1
+                else:
+                    return 0
 
         elif request_type == self.RESULTS:
-            if not self.writing_results:
+            if not self.writing_results and int(request_body['useBest']) == 0:
                 self.writing_results = True
                 self.write_results()
             return 1
@@ -381,15 +396,18 @@ class SLRabbitMQServer(RabbitMQServer):
 
             if len(actual_values) > 0 and len(predicted_values) > 0:
                 mae = mean_absolute_error(actual_values, predicted_values)
+                r2 = r2_score(actual_values, predicted_values)
 
                 num_runs = int(self.models[model_type]['results'].iat[current_combination, self.num_runs_index])
                 old_mae = float(self.models[model_type]['results'].iat[current_combination, self.mae_index])
+                old_r2 = float(self.models[model_type]['results'].iat[current_combination, self.r2_index])
 
                 num_runs += 1
 
                 self.models[model_type]['results'].iat[current_combination, self.num_runs_index] = num_runs
                 self.models[model_type]['results'].iat[current_combination, self.mae_index] = round(
                     (old_mae + mae) / num_runs, 3)
+                self.models[model_type]['results'].iat[current_combination, self.r2_index] = round((old_r2+r2)/num_runs, 3)
 
             self.models[model_type]['results'].to_csv(join(self.results_dir, '{0}.csv'.format(model_type)))
 

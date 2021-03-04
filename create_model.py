@@ -73,7 +73,6 @@ def save_models(model_name, features, label):
         pipeline_model.fit(X, y)
         file_name = join(model_dir, '{0}.pkl'.format(i))
         pickle.dump(pipeline_model, open(file_name, 'wb'))
-        #method_name, pre_processing_type = combination
         method_name, pre_processing_type, use_default_params = combination
         results = results.append({'combination_id': i,
                                   'regressor': method_name,

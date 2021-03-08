@@ -10,6 +10,10 @@ results_dir = join(dirname(realpath('__file__')), 'results')
 for model_type in context_types + message_types:
     results = pd.read_csv(join(results_dir, '{0}.csv'.format(model_type)))
 
-    results_filtered = results[results['mae'] == results['mae'].min()]
-    best_combinations = np.array(results_filtered['combination_id'])
-    print('Best Models of {0}: {1}'.format(model_type, best_combinations))
+    results_mae = results[results['mae'] == results['mae'].min()]
+    best_combinations_mae = results.index[results['mae'] == results['mae'].min()].tolist()
+    if len(best_combinations_mae) > 0:
+        best_combinations_r2 = results_mae.index[results_mae['r2'] == results_mae['r2'].max()].tolist()
+        print('Best model based on MAE and R2 for {0}: {1}'.format(model_type, best_combinations_r2[0]))
+    else:
+        print('Best model based on MAE for {0}: {1}'.format(model_type, best_combinations_mae[0]))

@@ -259,12 +259,11 @@ class SLRabbitMQServer(RabbitMQServer):
                 for model_type in self.models:
                     results = self.models[model_type]['results']
                     results_mae = results[results['mae'] == results['mae'].min()]
-                    best_based_on_mae = np.array(results_mae['combination_id'])
-                    if best_based_on_mae.size == 1:
+                    best_based_on_mae = results.index[results['mae'] == results['mae'].min()].tolist()
+                    if len(best_based_on_mae) == 1:
                         best_combinationID = best_based_on_mae[0]
                     else:
-                        results_r2 = results_mae[results_mae['r2'] == results_mae['r2'].max()]
-                        best_based_on_r2 = np.array(results_r2['combination_id'])
+                        best_based_on_r2 = results_mae.index[results_mae['r2'] == results_mae['r2'].max()].tolist()
                         best_combinationID = best_based_on_r2[0]
                     model_name = join(dirname(realpath('__file__')), 'models', model_type,
                                       '{0}.pkl'.format(best_combinationID))

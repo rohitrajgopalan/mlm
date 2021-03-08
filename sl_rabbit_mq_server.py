@@ -2,7 +2,6 @@ import json
 import numpy as np
 import pandas as pd
 import pickle
-import math
 from os.path import join, realpath, dirname, isfile, isdir
 from os import mkdir
 from datetime import datetime
@@ -264,7 +263,7 @@ class SLRabbitMQServer(RabbitMQServer):
                     if best_based_on_mae.size == 1:
                         best_combinationID = best_based_on_mae[0]
                     else:
-                        results_r2 = results_mae[math.fabs(results_mae['r2']) == math.fabs(results_mae['r2'].max())]
+                        results_r2 = results_mae[results_mae['r2'] == results_mae['r2'].max()]
                         best_based_on_r2 = np.array(results_r2['combination_id'])
                         best_combinationID = best_based_on_r2[0]
                     model_name = join(dirname(realpath('__file__')), 'models', model_type,

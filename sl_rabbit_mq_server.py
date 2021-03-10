@@ -28,7 +28,9 @@ class SLRabbitMQServer(RabbitMQServer):
                 'Multiplier': 'multiplier'
             },
             'actual_values': [],
-            'predicted_values': []
+            'predicted_values': [],
+            'previous_calculations':{},
+            'previous_predictions': {}
         },
         'distance_to_enemy_context': {
             'model': None,
@@ -40,7 +42,9 @@ class SLRabbitMQServer(RabbitMQServer):
                      '#5 Nearest', 'Multiplier'],
             'cols_to_json': {},
             'actual_values': [],
-            'predicted_values': []
+            'predicted_values': [],
+            'previous_calculations': {},
+            'previous_predictions': {}
         },
         'distance_to_enemy_aggregator': {
             'model': None,
@@ -52,7 +56,9 @@ class SLRabbitMQServer(RabbitMQServer):
                      '#5 Nearest', 'Multiplier'],
             'cols_to_json': {},
             'actual_values': [],
-            'predicted_values': []
+            'predicted_values': [],
+            'previous_calculations': {},
+            'previous_predictions': {}
         },
         'text_messages': {
             'model': None,
@@ -65,7 +71,9 @@ class SLRabbitMQServer(RabbitMQServer):
                 'Penalty': 'penalty',
             },
             'actual_values': [],
-            'predicted_values': []
+            'predicted_values': [],
+            'previous_calculations': {},
+            'previous_predictions': {}
         },
         'tactical_graphics': {
             'model': None,
@@ -78,7 +86,9 @@ class SLRabbitMQServer(RabbitMQServer):
                 'Score (Lazy)': 'score',
             },
             'actual_values': [],
-            'predicted_values': []
+            'predicted_values': [],
+            'previous_calculations': {},
+            'previous_predictions': {}
         },
         'sos': {
             'model': None,
@@ -92,7 +102,9 @@ class SLRabbitMQServer(RabbitMQServer):
                 'Score': 'score'
             },
             'actual_values': [],
-            'predicted_values': []
+            'predicted_values': [],
+            'previous_calculations': {},
+            'previous_predictions': {}
         },
         'blue_spots': {
             'model': None,
@@ -111,7 +123,9 @@ class SLRabbitMQServer(RabbitMQServer):
                 'Score': 'score'
             },
             'actual_values': [],
-            'predicted_values': []
+            'predicted_values': [],
+            'previous_calculations': {},
+            'previous_predictions': {}
         },
         'red_spots': {
             'model': None,
@@ -130,7 +144,9 @@ class SLRabbitMQServer(RabbitMQServer):
                 'Score': 'score'
             },
             'actual_values': [],
-            'predicted_values': []
+            'predicted_values': [],
+            'previous_calculations': {},
+            'previous_predictions': {}
         }
     }
 
@@ -177,14 +193,13 @@ class SLRabbitMQServer(RabbitMQServer):
         request_body = request['requestBody']
         request_type = request['requestType']
 
-        print(request_body)
-
         if request_type == self.COST:
             self.writing_results = False
             self.writing_data = False
 
             message_type = request_body['messageType'].lower()
             new_data_row = {}
+            new_data_tuple_list = []
             features = self.models[message_type]['features']
             cols_to_json = self.models[message_type]['cols_to_json']
             test_input = []
@@ -193,9 +208,24 @@ class SLRabbitMQServer(RabbitMQServer):
                     feature_value = request_body[cols_to_json[feature]]
                     new_data_row.update({feature: feature_value})
                     test_input.append(feature_value)
+                    new_data_tuple_list.append(feature_value)
 
-            actual_score = calculate_raw_score(message_type, new_data_row)
-            predicted_score = self.models[message_type]['model'].predict(np.array([test_input]))[0]
+
+            new_data_tuple = tuple(new_data_tuple_list)
+
+            if new_data_tuple not in self.models[message_type]['previous_calculations']:
+                actual_score = calculate_raw_score(message_type, new_data_row)
+                self.models[message_type]['previous_calculations'][new_data_tuple] = actual_score
+            else:
+                print('Return stored calculation of {0} for {1}'.format(message_type, new_data_row))
+                actual_score =self.models[message_type]['previous_calculations'][new_data_tuple]
+
+            if new_data_tuple not in self.models[message_type]['previous_predictions']:
+                predicted_score = self.models[message_type]['model'].predict(np.array([test_input]))[0]
+                self.models[message_type]['previous_predictions'][new_data_tuple] = predicted_score
+            else:
+                print('Return stored prediction of {0} for {1}'.format(message_type, new_data_row))
+                predicted_score = self.models[message_type]['previous_predictions'][new_data_tuple]
 
             self.models[message_type]['actual_values'].append(actual_score)
             self.models[message_type]['predicted_values'].append(predicted_score)
@@ -208,10 +238,19 @@ class SLRabbitMQServer(RabbitMQServer):
 
                 seconds_since_last_sent_sos = request_body['secondsSinceLastSOS']
                 if seconds_since_last_sent_sos != 1e6:
-                    actual_sos_multiplier = calculate_sos_operational_context_mutliplier(
-                        seconds_since_last_sent_sos)
-                    predicted_sos_multiplier = self.models['sos_operational_context']['model'].predict(
-                        np.array([seconds_since_last_sent_sos]).reshape(-1, 1))[0]
+                    if seconds_since_last_sent_sos not in self.models['sos_operational_context']['previous_calculations']:
+                        actual_sos_multiplier = calculate_sos_operational_context_mutliplier(seconds_since_last_sent_sos)
+                        self.models['sos_operational_context']['previous_calculations'][seconds_since_last_sent_sos] = actual_sos_multiplier
+                    else:
+                        print('Returned stored calculation of sos_operational_context for {0}'.format(seconds_since_last_sent_sos))
+                        actual_sos_multiplier = self.models['sos_operational_context']['previous_calculations'][seconds_since_last_sent_sos]
+                    if seconds_since_last_sent_sos not in self.models['sos_operational_context']['previous_predictions']:
+                        predicted_sos_multiplier = self.models['sos_operational_context']['model'].predict(
+                            np.array([seconds_since_last_sent_sos]).reshape(-1, 1))[0]
+                        self.models['sos_operational_context']['previous_predictions'][seconds_since_last_sent_sos] = predicted_sos_multiplier
+                    else:
+                        print('Return stored prediction of sos_operational_context for {0}'.format(seconds_since_last_sent_sos))
+                        predicted_sos_multiplier =self.models['sos_operational_context']['previous_predictions'][seconds_since_last_sent_sos]
                     self.models['sos_operational_context']['actual_values'].append(actual_sos_multiplier)
                     self.models['sos_operational_context']['predicted_values'].append(predicted_sos_multiplier)
                     sos_multiplier = predicted_sos_multiplier
@@ -223,21 +262,44 @@ class SLRabbitMQServer(RabbitMQServer):
 
                 if 1e6 not in nearest_values:
                     new_data_row = {}
+                    nearest_values_tuple = tuple(nearest_values)
                     for i in range(5):
                         new_data_row.update({'#{0} Nearest'.format(i + 1): nearest_values[i]})
                     if message_type == 'red_spots':
-                        actual_aggregate_multiplier = calculate_distance_to_enemy_aggregator(nearest_values)
-                        predicted_aggregate_multiplier = \
-                            self.models['distance_to_enemy_aggregator']['model'].predict(nearest_values.reshape(-1, 5))[
-                                0]
+                        if nearest_values_tuple not in self.models['distance_to_enemy_aggregator']['previous_calculations']:
+                            actual_aggregate_multiplier = calculate_distance_to_enemy_aggregator(nearest_values)
+                            self.models['distance_to_enemy_aggregator']['previous_calculations'][nearest_values_tuple] = actual_aggregate_multiplier
+                        else:
+                            print('Return stored calculation of distance_to_enemy_aggregator for {0}'.format(nearest_values))
+                            actual_aggregate_multiplier = self.models['distance_to_enemy_aggregator']['previous_calculations'][nearest_values_tuple]
+                        if nearest_values_tuple not in self.models['distance_to_enemy_aggregator']['previous_predictions']:
+                            predicted_aggregate_multiplier = \
+                                self.models['distance_to_enemy_aggregator']['model'].predict(nearest_values.reshape(-1, 5))[
+                                    0]
+                            self.models['distance_to_enemy_aggregator']['previous_predictions'][nearest_values_tuple] = predicted_aggregate_multiplier
+                        else:
+                            print('Return stored prediction of distance_to_enemy_aggregator for {0}'.format(nearest_values))
+                            predicted_aggregate_multiplier = self.models['distance_to_enemy_aggregator']['previous_predictions'][nearest_values_tuple]
                         self.models['distance_to_enemy_aggregator']['actual_values'].append(actual_aggregate_multiplier)
                         self.models['distance_to_enemy_aggregator']['predicted_values'].append(
                             predicted_aggregate_multiplier)
                         doe_multiplier = predicted_aggregate_multiplier
                     else:
-                        actual_context_multiplier = calculate_distance_to_enemy_aggregator(nearest_values)
-                        predicted_context_multiplier = \
-                            self.models['distance_to_enemy_context']['model'].predict(nearest_values.reshape(-1, 5))[0]
+                        if nearest_values_tuple not in self.models['distance_to_enemy_context']['previous_calculations']:
+                            actual_context_multiplier = calculate_distance_to_enemy_aggregator(nearest_values)
+                            self.models['distance_to_enemy_context']['previous_calculations'][nearest_values_tuple] = actual_context_multiplier
+                        else:
+                            print('Return stored calculation of distance_to_enemy_context for {0}'.format(nearest_values))
+                            actual_context_multiplier = self.models['distance_to_enemy_context']['previous_calculations'][nearest_values_tuple]
+                        if nearest_values_tuple not in self.models['distance_to_enemy_context']['previous_predictions']:
+                            predicted_context_multiplier = \
+                                self.models['distance_to_enemy_context']['model'].predict(
+                                    nearest_values.reshape(-1, 5))[0]
+                            self.models['distance_to_enemy_context']['previous_predictions'][nearest_values_tuple] = predicted_context_multiplier
+                        else:
+                            print('Return stored prediction of distance_to_enemy_context for {0}'.format(
+                                nearest_values))
+                            predicted_context_multiplier = self.models['distance_to_enemy_context']['previous_predictions'][nearest_values_tuple]
 
                         self.models['distance_to_enemy_context']['actual_values'].append(actual_context_multiplier)
                         self.models['distance_to_enemy_context']['predicted_values'].append(
@@ -259,17 +321,13 @@ class SLRabbitMQServer(RabbitMQServer):
                 for model_type in self.models:
                     results = self.models[model_type]['results']
                     results_mae = results[results['mae'] == results['mae'].min()]
-                    best_based_on_mae = results.index[results['mae'] == results['mae'].min()].tolist()
-                    if len(best_based_on_mae) == 1:
-                        best_combinationID = best_based_on_mae[0]
-                    else:
-                        best_based_on_r2 = results_mae.index[results_mae['r2'] == results_mae['r2'].max()].tolist()
-                        best_combinationID = best_based_on_r2[0]
+                    best_based_on_r2 = results_mae.index[results_mae['r2'] == results_mae['r2'].max()].tolist()
+                    best_combinationID = best_based_on_r2[0]
                     model_name = join(dirname(realpath('__file__')), 'models', model_type,
                                       '{0}.pkl'.format(best_combinationID))
                     self.models[model_type].update(
                         {'model': pickle.load(open(model_name, 'rb')), 'current_combination': best_combinationID})
-                    self.models[model_type].update({'actual_values': [], 'predicted_values': []})
+                    self.models[model_type].update({'actual_values': [], 'predicted_values': [],'previous_calculations':{},'previous_predictions': {}})
                 return 1
             else:
                 combination_id = int(request_body['combinationID'])
@@ -281,7 +339,7 @@ class SLRabbitMQServer(RabbitMQServer):
                                               '{0}.pkl'.format(combination_id))
                             self.models[model_type].update(
                                 {'model': pickle.load(open(model_name, 'rb')), 'current_combination': combination_id})
-                            self.models[model_type].update({'actual_values': [], 'predicted_values': []})
+                            self.models[model_type].update({'actual_values': [], 'predicted_values': [],'previous_calculations':{},'previous_predictions': {}})
                     return 1
                 else:
                     return 0

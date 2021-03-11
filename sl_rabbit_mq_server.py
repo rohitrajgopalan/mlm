@@ -217,14 +217,12 @@ class SLRabbitMQServer(RabbitMQServer):
                 actual_score = calculate_raw_score(message_type, new_data_row)
                 self.models[message_type]['previous_calculations'][new_data_tuple] = actual_score
             else:
-                print('Return stored calculation of {0} for {1}'.format(message_type, new_data_row))
                 actual_score =self.models[message_type]['previous_calculations'][new_data_tuple]
 
             if new_data_tuple not in self.models[message_type]['previous_predictions']:
                 predicted_score = self.models[message_type]['model'].predict(np.array([test_input]))[0]
                 self.models[message_type]['previous_predictions'][new_data_tuple] = predicted_score
             else:
-                print('Return stored prediction of {0} for {1}'.format(message_type, new_data_row))
                 predicted_score = self.models[message_type]['previous_predictions'][new_data_tuple]
 
             self.models[message_type]['actual_values'].append(actual_score)
@@ -242,14 +240,12 @@ class SLRabbitMQServer(RabbitMQServer):
                         actual_sos_multiplier = calculate_sos_operational_context_mutliplier(seconds_since_last_sent_sos)
                         self.models['sos_operational_context']['previous_calculations'][seconds_since_last_sent_sos] = actual_sos_multiplier
                     else:
-                        print('Returned stored calculation of sos_operational_context for {0}'.format(seconds_since_last_sent_sos))
                         actual_sos_multiplier = self.models['sos_operational_context']['previous_calculations'][seconds_since_last_sent_sos]
                     if seconds_since_last_sent_sos not in self.models['sos_operational_context']['previous_predictions']:
                         predicted_sos_multiplier = self.models['sos_operational_context']['model'].predict(
                             np.array([seconds_since_last_sent_sos]).reshape(-1, 1))[0]
                         self.models['sos_operational_context']['previous_predictions'][seconds_since_last_sent_sos] = predicted_sos_multiplier
                     else:
-                        print('Return stored prediction of sos_operational_context for {0}'.format(seconds_since_last_sent_sos))
                         predicted_sos_multiplier =self.models['sos_operational_context']['previous_predictions'][seconds_since_last_sent_sos]
                     self.models['sos_operational_context']['actual_values'].append(actual_sos_multiplier)
                     self.models['sos_operational_context']['predicted_values'].append(predicted_sos_multiplier)
@@ -270,7 +266,6 @@ class SLRabbitMQServer(RabbitMQServer):
                             actual_aggregate_multiplier = calculate_distance_to_enemy_aggregator(nearest_values)
                             self.models['distance_to_enemy_aggregator']['previous_calculations'][nearest_values_tuple] = actual_aggregate_multiplier
                         else:
-                            print('Return stored calculation of distance_to_enemy_aggregator for {0}'.format(nearest_values))
                             actual_aggregate_multiplier = self.models['distance_to_enemy_aggregator']['previous_calculations'][nearest_values_tuple]
                         if nearest_values_tuple not in self.models['distance_to_enemy_aggregator']['previous_predictions']:
                             predicted_aggregate_multiplier = \
@@ -278,7 +273,6 @@ class SLRabbitMQServer(RabbitMQServer):
                                     0]
                             self.models['distance_to_enemy_aggregator']['previous_predictions'][nearest_values_tuple] = predicted_aggregate_multiplier
                         else:
-                            print('Return stored prediction of distance_to_enemy_aggregator for {0}'.format(nearest_values))
                             predicted_aggregate_multiplier = self.models['distance_to_enemy_aggregator']['previous_predictions'][nearest_values_tuple]
                         self.models['distance_to_enemy_aggregator']['actual_values'].append(actual_aggregate_multiplier)
                         self.models['distance_to_enemy_aggregator']['predicted_values'].append(
@@ -289,7 +283,6 @@ class SLRabbitMQServer(RabbitMQServer):
                             actual_context_multiplier = calculate_distance_to_enemy_aggregator(nearest_values)
                             self.models['distance_to_enemy_context']['previous_calculations'][nearest_values_tuple] = actual_context_multiplier
                         else:
-                            print('Return stored calculation of distance_to_enemy_context for {0}'.format(nearest_values))
                             actual_context_multiplier = self.models['distance_to_enemy_context']['previous_calculations'][nearest_values_tuple]
                         if nearest_values_tuple not in self.models['distance_to_enemy_context']['previous_predictions']:
                             predicted_context_multiplier = \
@@ -297,8 +290,6 @@ class SLRabbitMQServer(RabbitMQServer):
                                     nearest_values.reshape(-1, 5))[0]
                             self.models['distance_to_enemy_context']['previous_predictions'][nearest_values_tuple] = predicted_context_multiplier
                         else:
-                            print('Return stored prediction of distance_to_enemy_context for {0}'.format(
-                                nearest_values))
                             predicted_context_multiplier = self.models['distance_to_enemy_context']['previous_predictions'][nearest_values_tuple]
 
                         self.models['distance_to_enemy_context']['actual_values'].append(actual_context_multiplier)

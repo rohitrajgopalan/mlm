@@ -51,9 +51,11 @@ message_types = {
 }
 
 combinations = get_scikit_model_combinations()
-datasets_dir = join(dirname(realpath('__file__')), 'datasets')
-models_dir = join(dirname(realpath('__file__')), 'models')
-results_dir = join(dirname(realpath('__file__')), 'results')
+root_dir = '/media/gopalanr/WD Black/gopalanr/mlm'
+datasets_dir = join(root_dir, 'datasets')
+models_dir = join(root_dir, 'models')
+results_dir = join(root_dir, 'results')
+
 
 if not isdir(models_dir):
     mkdir(models_dir)
@@ -67,7 +69,7 @@ def save_models(model_name, features, label):
     model_dir = join(models_dir, model_name)
     if not isdir(model_dir):
         mkdir(model_dir)
-    X, y = train_data(model_name, features, label)
+    X, y = train_data(datasets_dir, model_name, features, label)
     for i, combination in enumerate(combinations):
         pipeline_model = make_pipeline(combination)
         pipeline_model.fit(X, y)

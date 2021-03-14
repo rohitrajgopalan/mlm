@@ -214,28 +214,20 @@ def calculate_sos_score(age_of_message, num_blue_nodes, base=20, decay=4 / 60):
 def calculate_sos_operational_context_mutliplier(seconds_since_last_sent_sos):
     return 6 if seconds_since_last_sent_sos < 300 else 1
 
-
-def load_training_data(cols, sheet_name):
-    train_data_files_dir = join(dirname(realpath('__file__')), 'datasets', 'train', sheet_name)
-    return load_from_directory(train_data_files_dir, cols, True, sheet_name)
-
-
 def make_pipeline(combination, model_type=''):
     pipeline_list = []
     method_name, pre_processing_type, use_default_params = combination
-    #method_name, pre_processing_type = combination
     if pre_processing_type == PreProcessingType.SCALING:
         pipeline_list.append(('scaler', StandardScaler()))
     elif pre_processing_type == PreProcessingType.NORMALIZATION:
         pipeline_list.append(('normalizer', Normalizer()))
-    # method = select_method(choosing_method=method_name, use_default_params=use_default_params, model_type=model_type)
     method = select_method(method_name, use_default_params, model_type)
     pipeline_list.append(('method', method))
     return Pipeline(pipeline_list)
 
 
-def train_data(sheet_name, features, label, split=True):
-    data_files_dir = join(dirname(realpath('__file__')), 'datasets', sheet_name)
+def train_data(datasets_dir, sheet_name, features, label, split=True):
+    data_files_dir = join(datasets_dir, sheet_name)
     cols = [feature for feature in features]
     cols.append(label)
     data = load_from_directory(data_files_dir, cols, True, sheet_name)

@@ -165,10 +165,6 @@ class SLRabbitMQServer(RabbitMQServer):
         self.num_runs_index = self.result_cols.index("num_runs") - 1
         self.mae_index = self.result_cols.index("mae") - 1
         self.r2_index = self.result_cols.index("r2")-1
-        for model_type in self.models:
-            self.models[model_type].update({'results': pd.read_csv(
-                join(self.results_dir, '{0}.csv'.format(model_type)), index_col=self.result_cols[0])})
-        self.setup_data()
 
     def setup_data(self):
         if not isdir(self.datasets_dir):
@@ -310,6 +306,8 @@ class SLRabbitMQServer(RabbitMQServer):
 
             if int(request_body['useBest']) == 1:
                 for model_type in self.models:
+                    self.models[model_type].update({'results': pd.read_csv(
+                        join(self.results_dir, '{0}.csv'.format(model_type)), index_col=self.result_cols[0])})
                     results = self.models[model_type]['results']
                     results_mae = results[results['mae'] == results['mae'].min()]
                     best_based_on_r2 = results_mae.index[results_mae['r2'] == results_mae['r2'].max()].tolist()
@@ -326,6 +324,8 @@ class SLRabbitMQServer(RabbitMQServer):
                     for model_type in self.models:
                         if self.models[model_type]['current_combination'] == -1 or self.models[model_type][
                             'current_combination'] != combination_id:
+                            self.models[model_type].update({'results': pd.read_csv(
+                                join(self.results_dir, '{0}.csv'.format(model_type)), index_col=self.result_cols[0])})
                             model_name = join(dirname(realpath('__file__')), 'models', model_type,
                                               '{0}.pkl'.format(combination_id))
                             self.models[model_type].update(

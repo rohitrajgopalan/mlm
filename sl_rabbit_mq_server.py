@@ -250,9 +250,11 @@ class SLRabbitMQServer(RabbitMQServer):
                 nearest_values = request_body['nearestValues']
                 nearest_values = np.array(nearest_values)
                 nearest_values = np.sort(nearest_values)
-                nearest_values = nearest_values[:5]
+                # nearest_values = nearest_values[:5]
 
-                if 1e6 not in nearest_values:
+                # if 1e6 not in nearest_values:
+                if nearest_values.size >= 5:
+                    nearest_values = nearest_values[:5]
                     new_data_row = {}
                     nearest_values_tuple = tuple(nearest_values)
                     for i in range(5):

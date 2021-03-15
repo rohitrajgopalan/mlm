@@ -354,7 +354,7 @@ class SLRabbitMQServer(RabbitMQServer):
             doe_multiplier = 1
             sos_multiplier = 1
 
-            if 1e6 not in nearest_values:
+            if nearest_values.size >= 5:
                 nearest_values = nearest_values[:5]
                 new_data_row_distance_to_enemy = {}
 
